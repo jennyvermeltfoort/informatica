@@ -7,9 +7,9 @@
 \parindent=0pt
 \usepackage{hyperref}
 \hypersetup{
-  colorlinks = true,
-  linkcolor = blue,
-  linkbordercolor = {white},
+      colorlinks = true,
+      linkcolor = blue,
+      linkbordercolor = {white},
 }
 \usepackage{fullpage}
 
@@ -22,15 +22,15 @@
 \usepackage{listings}
 % Er zijn talloze parameters ...
 \lstdefinestyle{myStyle}{
-  belowcaptionskip=1\baselineskip,
-  breaklines=true,
-  frame=none,
-  numbers=none,
-  basicstyle=\footnotesize\ttfamily,
-  keywordstyle=\bfseries\color{blue!40!black},
-  commentstyle=\itshape\color{green!40!black},
-  identifierstyle=\color{black},
-  backgroundcolor=\color{gray!10!white},
+      belowcaptionskip=1\baselineskip,
+      breaklines=true,
+      frame=none,
+      numbers=none,
+      basicstyle=\footnotesize\ttfamily,
+      keywordstyle=\bfseries\color{blue!40!black},
+      commentstyle=\itshape\color{green!40!black},
+      identifierstyle=\color{black},
+      backgroundcolor=\color{gray!10!white},
 }
 
 \title{Opdracht 1}
@@ -52,60 +52,67 @@ resultaten.
 \section{Eisen}
 De applicatie voldoet aan de volgende eisen:
 \begin{enumerate}
-  \item De gebruiker wordt gevraagd om zijn of haar geboortejaar.
-  \item De gebruiker mag niet jonger zijn dan 10 jaar, dit wordt getest bij elke prompt dat gerelateerd is aan de
-        geboortedatum.
-  \item Wanneer er een geboortejaar jonger dan nu wordt gegeven, wordt input gekenmerkt als niet valide.
-  \item De gebruiker wordt gevraagd om zijn of haar geboortemaand.
-  \item Wanneer er een geboortemaand wordt gegeven buiten de criteria \{1..12\} dan wordt de input gekenmerkt als niet
-        valide.
-  \item De gebruiker wordt gevraagd om zijn of haar geboortedag numeriek.
-  \item Wanneer er een geboortedag wordt gegeven buiten de criteria \{1..31\} dan wordt de input gekenmerkt als niet
-        valide.
-  \item Wanneer er een geboortedag wordt gegeven buiten het criteria van de maand, wordt het verschil opgesomd bij de
-        geboortemaand. Bijvoorbeeld wanneer de gebruiker in geeft: \"1994 2 30\" (1994/2/30) dan wordt de datum
-        (1994/3/2).
-  \item Wanneer de gebruiker jonger is dan 30 jaar worden de hierna komende vragen informeel gesteld.
-  \item De gebruiker wordt gevraagd om zijn of haar geboortedag text (ma,di,wo,do,vr,za,zo).
-  \item Wanneer de geboortedag in text formaat niet overeenkomt met de dag van de ingegeven geboortedatum worden de
-        gegevens van de gebruiker verwijderd en stopt het prompt.
-  \item De gebruiker wordt gevraagd om een wiskunde probleem op te lossen. Er wordt gevraagd om een
-        som van twee breuken, waar de tellers en noemers van de breuken tussen de 1 en 19 liggen.\
-  \item Het antwoord wordt gedeeld in drie prompts: teller, noemer, en het antwoord met twee decimalen achter de komma.
-  \item Bij elk prompt wordt er gevalideerd of het antwoord op de wiskundevraag klopt.
-  \item Het decimalen antwoord op de wiskundevraag heeft een foutmarge van 0.1.
-  \item Wanneer er een foutief antwoord wordt geleverd wordt er een literatuur vraag gesteld. Er wordt een
-        meerkeuzevraag gesteld met 4 keuzes, antwoord (b) is altijd correct.
-  \item De keuzes van de meerkeuzevraag worden gelabeld met (a,b,c,d).
-  \item Het formaat van de input correspondeert met de meerkeuzevragen: (a,b,c,d).
-  \item Wanneer de input niet correspondeert met het formaat wordt de input als niet valide gekenmerkt.
-  \item Wanneer er een foutief antwoord wordt geleverd is de gebruiker niet geschikt voor een universitaire studie en
-        eindigt het prompt.
-  \item Wanneer er een correct antwoord wordt geleverd op de wiskunde vraag is de gebruiker geschikt voor een exacte
-        universitaire studie en eindigt het prompt.
-  \item Wanneer er een correct antwoord wordt geleverd op de literatuur vraag is de gebruiker geschikt voor een beta
-        universitaire studie en eindigt het prompt.
+      \item De gebruiker wordt gevraagd om zijn of haar geboortejaar.
+      \item De gebruiker mag niet jonger zijn dan 10 jaar, dit wordt getest bij elke prompt dat gerelateerd is aan de
+            geboortedatum.
+      \item Wanneer er een geboortejaar jonger dan nu wordt gegeven, wordt input gekenmerkt als niet valide.
+      \item De gebruiker wordt gevraagd om zijn of haar geboortemaand.
+      \item Wanneer er een geboortemaand wordt gegeven buiten de criteria \{1..12\} dan wordt de input gekenmerkt als
+            niet
+            valide.
+      \item De gebruiker wordt gevraagd om zijn of haar geboortedag numeriek.
+      \item Wanneer er een geboortedag wordt gegeven buiten de criteria \{1..31\} dan wordt de input gekenmerkt als
+            niet
+            valide.
+      \item Wanneer er een geboortedag wordt gegeven buiten het criteria van de maand, wordt het verschil opgesomd bij
+            de
+            geboortemaand. Bijvoorbeeld wanneer de gebruiker in geeft: \"1994 2 30\" (1994/2/30) dan wordt de datum
+            (1994/3/2).
+      \item Wanneer de gebruiker jonger is dan 30 jaar worden de hierna komende vragen informeel gesteld.
+      \item De gebruiker wordt gevraagd om zijn of haar geboortedag text (ma,di,wo,do,vr,za,zo).
+      \item Wanneer de geboortedag in text formaat niet overeenkomt met de dag van de ingegeven geboortedatum worden de
+            gegevens van de gebruiker verwijderd en stopt het prompt.
+      \item De gebruiker wordt gevraagd om een wiskunde probleem op te lossen. Er wordt gevraagd om een
+            som van twee breuken, waar de tellers en noemers van de breuken tussen de 1 en 19 liggen.\
+      \item Het antwoord wordt gedeeld in drie prompts: teller, noemer, en het antwoord met twee decimalen achter de
+            komma.
+      \item Bij elk prompt wordt er gevalideerd of het antwoord op de wiskundevraag klopt.
+      \item Het decimalen antwoord op de wiskundevraag heeft een foutmarge van 0.1.
+      \item Wanneer er een foutief antwoord wordt geleverd wordt er een literatuur vraag gesteld. Er wordt een
+            meerkeuzevraag gesteld met 4 keuzes, antwoord (b) is altijd correct.
+      \item De keuzes van de meerkeuzevraag worden gelabeld met (a,b,c,d).
+      \item Het formaat van de input correspondeert met de meerkeuzevragen: (a,b,c,d).
+      \item Wanneer de input niet correspondeert met het formaat wordt de input als niet valide gekenmerkt.
+      \item Wanneer er een foutief antwoord wordt geleverd is de gebruiker niet geschikt voor een universitaire studie
+            en
+            eindigt het prompt.
+      \item Wanneer er een correct antwoord wordt geleverd op de wiskunde vraag is de gebruiker geschikt voor een
+            exacte
+            universitaire studie en eindigt het prompt.
+      \item Wanneer er een correct antwoord wordt geleverd op de literatuur vraag is de gebruiker geschikt voor een
+            beta
+            universitaire studie en eindigt het prompt.
 \end{enumerate}
 
 \section{Tijd}
-Het heeft ongeveer 10 uur gekost.
+Het heeft ongeveer 8 uur gekost.
 
 \section{Code}\label{sec:code}
 \lstinputlisting[caption=main.cpp,
-  label={lst:listing-cpp},
-  language=C++,
-  style=myStyle]{../src/main.cpp}
+      label={lst:listing-cpp},
+      language=C++,
+      style=myStyle]{../src/main.cpp}
 
 \section{Test}\label{sec:test}
 \lstinputlisting[caption=test.sh,
-  label={lst:test},
-  language=sh,
-  style=myStyle]{../test.sh}
+      label={lst:test},
+      language=sh,
+      style=myStyle]{../test.sh}
 
 \subsection{Resultaat}\label{sec:resultaat}
 \lstinputlisting[caption=test.sh,
-  label={lst:test-result},
-  language=sh,
-  style=myStyle]{./results.log}
+      label={lst:test-result},
+      language=sh,
+      style=myStyle]{./results.log}
 
 \end{document}

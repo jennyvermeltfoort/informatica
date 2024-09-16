@@ -43,7 +43,7 @@ typedef struct prompt_list_t {
     char year[164];
     char month[164];
     char day[164];
-    char day_str[164];
+    char exp_day_str[164];
     char math[164];
     char math_teller[164];
     char math_noemer[164];
@@ -79,7 +79,7 @@ const question_item_t question_item_formal = {
 
 /* Informal prompts. */
 const prompt_list_t prompt_list_informal = {
-    .day_str = "> Welke dag ben je geboren? (m,d,w,v,z)",
+    .exp_day_str = "> Welke dag ben je geboren? (m,d,w,v,z)",
     .math = "> Vind het antwoord van het volgende probleem: ",
     .math_teller = "> Geef de teller van je antwoord.",
     .math_noemer = "> Geef de noemer van je antwoord.",
@@ -99,7 +99,7 @@ const prompt_list_t prompt_list_formal = {
     .year = "> Geef je geboorte jaar.",
     .month = "> Geef de maand waarin je geboren bent.",
     .day = "> Geef de dag waarop je geboren bent.",
-    .day_str = "> Verstrek de dag waarop u bent geboren. (m,d,w,v,z)",
+    .exp_day_str = "> Verstrek de dag waarop u bent geboren. (m,d,w,v,z)",
     .math = "> Verstrek het antwoord van het volgende probleem: ",
     .math_teller = "> Geef de teller van het antwoord.",
     .math_noemer = "> Geef de noemer van het antwoord.",
@@ -116,7 +116,8 @@ const prompt_list_t prompt_list_formal = {
     .err_invalid = "> De gegeven informatie is niet valide, probeer het opnieuw."};
 
 /* Amount of days per month from jan till dec.*/
-const uint8_t day_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+const int DAY_MONTH_SIZE = 12;
+const int day_month[DAY_MONTH_SIZE] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
 /* A list of weekdays, normalized to DATE_NORM_YEAR. 1/1/1876 is a saterday.*/
 const date_day_e day_list[] = {DATE_DAY_SATERDAY, DATE_DAY_SUNDAY,    DATE_DAY_MONDAY,
                                DATE_DAY_TUESDAY,  DATE_DAY_WEDNESDAY, DATE_DAY_THURSDAY,
@@ -141,9 +142,8 @@ int main(int argc, char **argv) {
     int math_answer_noemer = 0;
     float math_answer_float = 0;
     int num_leap_days = 0;
-    int num_days_from_mon = 0;
     int num_days_total = 0;
-    date_day_e day_str = DATE_DAY_MONDAY;
+    date_day_e exp_day_str = DATE_DAY_MONDAY;
     const prompt_list_t *prompt_list = &prompt_list_formal;
     const question_item_t *question_item = &question_item_formal;
 
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
     // Ask for age.
     std::cout << prompt_list->year << "\n";
     std::cin >> input_int;
-    if (!input_int) {
+    if (!input_int || !(input_int > DATE_NORM_YEAR)) {
         goto end_err_invalid;
     }
     birth_year = input_int;
@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
         goto end_err_young;
     }
 
-    // Start asking informal questions.
+    // Should we ask informal questions? Rough calculation of age.
     time_holder->tm_year = time_holder->tm_year - 10;
     time_converted = mktime(time_holder);
     if (int(difftime(time_now, time_converted) / 31556925.9936) < LIMIT_FORMAL_AGE) {
@@ -209,56 +209,57 @@ int main(int argc, char **argv) {
     {
         num_leap_days--;
     }
-    for (int i = 0; i < birth_month - 1; i++) {
-        num_days_from_mon += day_month[i];
-    }
-    num_days_total = (birth_year - DATE_NORM_YEAR) * DAYS_IN_YEAR + num_days_from_mon + birth_day -
-                     1 + num_leap_days;
-    day_str = day_list[num_days_total % 7];
+
+    num_days_total = (birth_year - DATE_NORM_YEAR) * DAYS_IN_YEAR + day_month[birth_month - 1] +
+                     birth_day - 1 + num_leap_days;
+    exp_day_str = day_list[num_days_total % 7];
+    std::cout << birth_year - DATE_NORM_YEAR << "\n";
 
     // Ask for day of the birthday and test correctness.
-    std::cout << prompt_list->day_str << "\n";
+    std::cout << prompt_list->exp_day_str << "\n";
     std::cin >> input_char;
     if (!input_char) {
         goto end_err_invalid;
     }
-    switch (input_char) {  // eww
+    switch (input_char | 0x20) {  // ugly switch case
         case 'z':
             std::cout << "> Welke dag:  za(a) of zo(o))?\n";
             std::cin >> input_char;
+            input_char |= 0x20;  // lowercase
             if (!input_char || (input_char != 'a' && input_char != 'o')) {
                 goto end_err_invalid;
             }
-            if (input_char == 'a' && day_str != DATE_DAY_SATERDAY) {
+            if (input_char == 'a' && exp_day_str != DATE_DAY_SATERDAY) {
                 goto end_err_day_str;
-            } else if (input_char == 'o' && day_str != DATE_DAY_SUNDAY) {
+            } else if (input_char == 'o' && exp_day_str != DATE_DAY_SUNDAY) {
                 goto end_err_day_str;
             }
             break;
         case 'm':
-            if (day_str != DATE_DAY_MONDAY) {
+            if (exp_day_str != DATE_DAY_MONDAY) {
                 goto end_err_day_str;
             }
             break;
         case 'd':
             std::cout << "> Welke dag: di(i) of do(o))?\n";
             std::cin >> input_char;
+            input_char |= 0x20;  // lowercase
             if (!input_char || (input_char != 'i' && input_char != 'o')) {
                 goto end_err_invalid;
             }
-            if (input_char == 'i' && day_str != DATE_DAY_TUESDAY) {
+            if (input_char == 'i' && exp_day_str != DATE_DAY_TUESDAY) {
                 goto end_err_day_str;
-            } else if (input_char == 'o' && day_str != DATE_DAY_THURSDAY) {
+            } else if (input_char == 'o' && exp_day_str != DATE_DAY_THURSDAY) {
                 goto end_err_day_str;
             }
             break;
         case 'w':
-            if (day_str != DATE_DAY_WEDNESDAY) {
+            if (exp_day_str != DATE_DAY_WEDNESDAY) {
                 goto end_err_day_str;
             }
             break;
         case 'v':
-            if (day_str != DATE_DAY_FRIDAY) {
+            if (exp_day_str != DATE_DAY_FRIDAY) {
                 goto end_err_day_str;
             }
             break;

@@ -10,10 +10,10 @@ do_test () {
     let COUNTER++
 
     if [ $TEST -eq 1 ]; then
-        echo -e "$1" | ./main
+        echo -e "$1" | ./main.o
     fi;
 
-    echo -e "$1" | ./main | grep -q "$2" && echo "Test ${COUNTER} Ok" || (echo "Test ${COUNTER} Failed" && echo -e "$1" | ./main)
+    echo -e "$1" | ./main.o | grep -q "$2" && echo "Test ${COUNTER} Ok" || (echo "Test ${COUNTER} Failed" && echo -e "$1" | ./main.o)
 }
 
 echo ""
@@ -23,6 +23,43 @@ do_test "1994 \n 2 \n 28 \n m \n 91823 \n 91823 \n 91823" "geschikt voor een exa
 echo ""
 echo "Test happy flow beta study."
 do_test "1994 \n 2 \n 28 \n m \n 1 \n b" "u bent geschikt voor een beta studie"
+
+echo ""
+echo "Test happy flow: 31 december 2000 is zondag."
+do_test "2000 \n 12 \n 31 \n z \n o \n 1 \n b" "je bent geschikt voor een beta studie"
+
+echo ""
+echo "Test happy flow: 1 jan 2000 is zaterday."
+do_test "2000 \n 1 \n 1 \n z \n a \n 1 \n b" "je bent geschikt voor een beta studie"
+
+echo ""
+echo "Test happy flow: 1 jan 1877 is zondag."
+do_test "1877 \n 1 \n 1 \n z \n o \n 1 \n b" "u bent geschikt voor een beta studie"
+
+# Very ugly but whatever, what works, works.
+echo ""
+echo "Test happy flow: youngest possible (now - 10 years)."
+let COUNTER++
+YEAR="$(($(date '+%Y') -10))"
+MONTH="$(date '+%-m')"
+DAY="$(date '+%-d')"
+DAY_STR_1="$(LC_TIME="nl_NL.UTF-8" date -d "${YEAR}-${MONTH}-${DAY}" "+%A" | cut -b 1)"
+DAY_STR_2="$(LC_TIME="nl_NL.UTF-8" date -d "${YEAR}-${MONTH}-${DAY}" "+%A" | cut -b 2)"
+echo -e "${YEAR} \n ${MONTH} \n ${DAY} \n ${DAY_STR_1} \n ${DAY_STR_2} \n 1 \n b" | ./main.o | grep -q "je bent geschikt voor een beta studie" && echo "Test ${COUNTER} Ok" || ( \
+    echo -e "${YEAR} \n ${MONTH} \n ${DAY} \n ${DAY_STR_1} \n 1 \n b" | ./main.o | grep -q "je bent geschikt voor een beta studie" && echo "Test ${COUNTER} Ok" || ( \
+        echo "Test ${COUNTER} Failed" && echo -e "${YEAR} \n ${MONTH} \n ${DAY} \n ${DAY_STR_1} \n 1 \n b" | ./main.o))
+
+# Very ugly but whatever, what works, works.
+echo ""
+echo "Test happy flow: Barely too young (now - 10 years +1 day.)."
+let COUNTER++
+YEAR="$(($(date '+%Y') -10))"
+MONTH="$(date '+%-m')"
+DAY="$(($(date '+%-d') + 1))"
+DAY_STR_1="$(LC_TIME="nl_NL.UTF-8" date -d "${YEAR}-${MONTH}-${DAY}" "+%A" | cut -b 1)"
+DAY_STR_2="$(LC_TIME="nl_NL.UTF-8" date -d "${YEAR}-${MONTH}-${DAY}" "+%A" | cut -b 2)"
+echo -e "${YEAR} \n ${MONTH} \n ${DAY} \n ${DAY_STR_1} \n ${DAY_STR_2} \n 1 \n b" | ./main.o | grep -q "Je bent te jong om deze vragenlijst in te vullen" && echo "Test ${COUNTER} Ok" || ( \
+        echo "Test ${COUNTER} Failed" && echo -e "${YEAR} \n ${MONTH} \n ${DAY} \n ${DAY_STR_1} \n 1 \n b" | ./main.o)
 
 echo ""
 echo "Test happy flow schrikkeljaar, beta study."

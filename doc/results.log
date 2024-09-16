@@ -49,3 +49,69 @@ Test 16 Ok
 
 Test fail state invalid input: literature question.
 Test 17 Ok
+
+Test happy flow exact study.
+Test 1 Ok
+
+Test happy flow beta study.
+Test 2 Ok
+
+Test happy flow: 31 december 2000 is zondag.
+Test 3 Ok
+
+Test happy flow: 1 jan 2000 is zaterday.
+Test 4 Ok
+
+Test happy flow: 1 jan 1877 is zondag.
+Test 5 Ok
+
+Test happy flow: youngest possible (now - 10 years).
+Test 6 Ok
+
+Test happy flow: Barely too young (now - 10 years +1 day.).
+Test 7 Ok
+
+Test happy flow schrikkeljaar, beta study.
+Test 8 Ok
+
+Test happy flow when user is not suitable for a study.
+Test 9 Ok
+
+Test fail state invalid day string. 1994-2-28 should be 'm'
+Test 10 Ok
+
+Test fail state invalid day string in schikkeljaar. 2000-2-29 should be 'd' 'i'
+Test 11 Ok
+
+Test fail state when user is too young.
+Test 12 Ok
+
+Test fail state invalid input: year
+Test 13 Ok
+
+Test fail state invalid input: month
+Test 14 Ok
+
+Test fail state invalid input: day
+Test 15 Ok
+
+Test fail state invalid input: day_string
+Test 16 Ok
+
+Test fail state invalid input: day_string -> d
+Test 17 Ok
+
+Test fail state invalid input: day_string -> z
+Test 18 Ok
+
+Test fail state invalid input: math input teller
+Test 19 Ok
+
+Test fail state invalid input: math input noemer
+Test 20 Ok
+
+Test fail state invalid input: math input float
+Test 21 Ok
+
+Test fail state invalid input: literature question.
+Test 22 Ok

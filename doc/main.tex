@@ -25,7 +25,8 @@
       belowcaptionskip=1\baselineskip,
       breaklines=true,
       frame=none,
-      numbers=none,
+      numbers=left, numberstyle=\tiny, numberfirstline=false, breaklines=true,
+      stepnumber=1, tabsize=8,
       basicstyle=\footnotesize\ttfamily,
       keywordstyle=\bfseries\color{blue!40!black},
       commentstyle=\itshape\color{green!40!black},
@@ -110,7 +111,7 @@ Het heeft ongeveer 8 uur gekost.
       style=myStyle]{../test.sh}
 
 \subsection{Resultaat}\label{sec:resultaat}
-\lstinputlisting[caption=test.sh,
+\lstinputlisting[caption=results.log,
       label={lst:test-result},
       language=sh,
       style=myStyle]{./results.log}

@@ -1,4 +1,13 @@
-#include <cstdlib>
+/* Build with: g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0.
+ *
+ * The application is a questionnaire that validates whether a user is suitable for a
+ * university program. Through a CLI interface, questions are asked, and the user is
+ * expected to provide input according to the required format for each question.
+ *
+ * Author: Jenny Vermeltfoort (j.vermeltfoort@umail.leidenuniv.nl)
+ * Date: 9-22-2024
+ */
+
 #include <ctime>
 #include <iostream>
 
@@ -11,13 +20,14 @@
 
 const int MATH_ANSWER_CHEAT = 91823;  // For testing purposes.
 const float MATH_ANSWER_FLOAT_LIMIT = 0.1;
-const int DATE_NORM_YEAR = 1876;  // Calculations will be normalized to saturday, Januari 1th 1876.
-                                  // Oldest person alive.
-                                  // 1876 is a schrikkeljaar
+const int DATE_NORM_YEAR =
+    1876;  // Calculations will be normalized to saturday, Januari 1th 1876.
+           // Oldest person alive.
+           // 1876 is a schrikkeljaar
 const int DAYS_IN_YEAR = 365;
 const int LIMIT_FORMAL_AGE = 30;
 
-/* A struct that defines a variable question inlcuding answer asked to the user. */
+/* Question struct, including choices and answer. */
 typedef struct QUESTION_ITEM {
     char question[164];
     char choice_1[128];
@@ -38,7 +48,7 @@ typedef enum DAY {
     DATE_DAY_SUNDAY,
 } date_day_e;
 
-/* A struct that defines all variable prompts asked to the user. */
+/* Prompt struct that defines all variable lines relayed to the user. */
 typedef struct prompt_list_t {
     char year[164];
     char month[164];
@@ -59,7 +69,9 @@ typedef struct prompt_list_t {
 
 /* Informal question. */
 const question_item_t question_item_informal = {
-    .question = "> Welk literair werk wordt beschouwd als het eerste moderne psychologische roman?",
+    .question =
+        "> Welk literair werk wordt beschouwd als het eerste moderne psychologische "
+        "roman?",
     .choice_1 = "a. Don Quichot van Miguel de Cervantes",
     .choice_2 = "b. De Gebroeders Karamazov van Fjodor Dostojevski",
     .choice_3 = "c. Odyssee van Homerus",
@@ -69,7 +81,8 @@ const question_item_t question_item_informal = {
 /* Formal question. */
 const question_item_t question_item_formal = {
     .question =
-        "> Welke Franse schrijver en filosoof schreef het werk L'Etranger en won de Nobelprijs "
+        "> Welke Franse schrijver en filosoof schreef het werk L'Etranger en won de "
+        "Nobelprijs "
         "voor Literatuur in 1957?",
     .choice_1 = "a. Jean-Paul Sartre",
     .choice_2 = "b. Albert Camus",
@@ -77,7 +90,7 @@ const question_item_t question_item_formal = {
     .choice_4 = "d. Andre Gide",
     .answer = 'b'};
 
-/* Informal prompts. */
+/* Informal prompts defined. */
 const prompt_list_t prompt_list_informal = {
     .exp_day_str = "> Welke dag ben je geboren? (m,d,w,v,z)",
     .math = "> Vind het antwoord van het volgende probleem: ",
@@ -87,14 +100,15 @@ const prompt_list_t prompt_list_informal = {
     .math_fault = "> Jammer genoeg is het antwoord niet goed, we gaan verder.",
     .question = "> Geef hier het antwoord op de vraag. (a, b, c, d)",
     .question_fault =
-        "> Helaas klopt dat niet helemaal, waarschijnlijk ben je niet geschikt voor een opleiding "
+        "> Helaas klopt dat niet helemaal, waarschijnlijk ben je niet geschikt voor een "
+        "opleiding "
         "aan de universiteit.",
     .ok_exact = "> Helemaal goed, je bent geschikt voor een exacte studie.",
     .ok_beta = "> Helemaal goed, je bent geschikt voor een beta studie.",
     .done = "> Je bent helemaal klaar!",
     .err_invalid = "> Je gegeven informatie klopt niet helemaal, probeer het opnieuw."};
 
-/* Formal prompts. */
+/* Formal prompts defined. */
 const prompt_list_t prompt_list_formal = {
     .year = "> Geef je geboorte jaar.",
     .month = "> Geef de maand waarin je geboren bent.",
@@ -105,20 +119,21 @@ const prompt_list_t prompt_list_formal = {
     .math_noemer = "> Geef de noemer van het antwoord.",
     .math_float = "> Geef het antwoord met twee decimalen na de komma.",
     .math_fault =
-        "> Helaas is dit fout, mogelijk is een beta studie iets voor u, de vragenlijst gaat door.",
+        "> Helaas is dit fout, mogelijk is een beta studie iets voor u, de vragenlijst "
+        "gaat door.",
     .question = "> Verstrek het antwoord op de vraag. (a, b, c, d)",
     .question_fault =
-        "> Helaas is het antwoord fout, u bent waarschijnlijk niet geschikt voor een opleiding aan "
+        "> Helaas is het antwoord fout, u bent waarschijnlijk niet geschikt voor een "
+        "opleiding aan "
         "de universiteit.",
     .ok_exact = "> Helemaal goed, u bent geschikt voor een exacte studie.",
     .ok_beta = "> Helemaal goed, u bent geschikt voor een beta studie.",
     .done = "> U heeft de vragenlijst afgerond, een prettige dag gewenst.",
     .err_invalid = "> De gegeven informatie is niet valide, probeer het opnieuw."};
 
-/* Amount of days per month from jan till dec.*/
-const int DAY_MONTH_SIZE = 12;
-const int day_month[DAY_MONTH_SIZE] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-/* A list of weekdays, normalized to DATE_NORM_YEAR. 1/1/1876 is a saterday.*/
+/* Amount of days per month from jan till dec. */
+const int day_month[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+/* A list of weekdays, index 0 normalized to DATE_NORM_YEAR. 1/1/1876 is a saterday. */
 const date_day_e day_list[] = {DATE_DAY_SATERDAY, DATE_DAY_SUNDAY,    DATE_DAY_MONDAY,
                                DATE_DAY_TUESDAY,  DATE_DAY_WEDNESDAY, DATE_DAY_THURSDAY,
                                DATE_DAY_FRIDAY};
@@ -210,8 +225,8 @@ int main(int argc, char **argv) {
         num_leap_days--;
     }
 
-    num_days_total = (birth_year - DATE_NORM_YEAR) * DAYS_IN_YEAR + day_month[birth_month - 1] +
-                     birth_day - 1 + num_leap_days;
+    num_days_total = (birth_year - DATE_NORM_YEAR) * DAYS_IN_YEAR +
+                     day_month[birth_month - 1] + birth_day - 1 + num_leap_days;
     exp_day_str = day_list[num_days_total % 7];
     std::cout << birth_year - DATE_NORM_YEAR << "\n";
 
@@ -274,19 +289,21 @@ int main(int argc, char **argv) {
     math_2_teller = rand() % 20 + 1;
     math_2_noemer = rand() % 20 + 1;
     if (math_1_noemer == math_2_noemer) {
-        math_answer_teller = math_1_teller + (math_2_teller * ((math_sign == '-') ? -1 : 1));
+        math_answer_teller =
+            math_1_teller + (math_2_teller * ((math_sign == '-') ? -1 : 1));
         math_answer_noemer = math_1_noemer;
     } else {
-        math_answer_teller = math_1_teller * math_2_noemer +
-                             (math_2_teller * math_1_noemer * ((math_sign == '-') ? -1 : 1));
+        math_answer_teller =
+            math_1_teller * math_2_noemer +
+            (math_2_teller * math_1_noemer * ((math_sign == '-') ? -1 : 1));
         math_answer_noemer = math_1_noemer * math_2_noemer;
     }
     math_answer_float = (float)math_answer_teller / (float)math_answer_noemer;
 
     // Ask math question.
     std::cout << prompt_list->math;
-    std::cout << math_1_teller << "/" << math_1_noemer << " " << math_sign << " " << math_2_teller
-              << "/" << math_2_noemer << " = ?\n";
+    std::cout << math_1_teller << "/" << math_1_noemer << " " << math_sign << " "
+              << math_2_teller << "/" << math_2_noemer << " = ?\n";
     std::cout << prompt_list->math_teller << "\n";
     std::cin >> input_int;
     if (input_int != MATH_ANSWER_CHEAT && input_int != math_answer_teller) {
@@ -322,8 +339,8 @@ end_math_fault:
     std::cout << prompt_list->question << "\n";
 
     std::cin >> input_char;
-    if (!input_char ||
-        (input_char != 'a' && input_char != 'b' && input_char != 'c' && input_char != 'd')) {
+    if (!input_char || (input_char != 'a' && input_char != 'b' && input_char != 'c' &&
+                        input_char != 'd')) {
         goto end_err_invalid;
     }
     if ((input_char | 0x20) != question_item->answer) {

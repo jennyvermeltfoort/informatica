@@ -12,8 +12,11 @@
 \usepackage{titlecaps}% http://ctan.org/pkg/titlecaps
 
 
-\usepackage[T1]{lmodern}
+\usepackage{lmodern}
 \fontfamily{lmdh}\selectfont
+
+\usepackage[backend=biber,style=ieee]{biblatex}
+\addbibresource{bib.bib}
 
 \begin{document}
 
@@ -28,14 +31,14 @@
 \section*{Introduction}
 While software is written to be interpreted by computers it is of key importance that developers can quickly understand its semantics. The naming of identifiers is an important tools for software engineers to meaningfully transfer concepts to their colleagues, who might be maintaining, updating, or refactoring the code. Comprehensibility of these concepts might be restricted by the innate free characteristics of naming conventions within software languages. It is therefore of interest to identify what kind of identifiers are difficult to interpret and whether formal rules may support a more meaningful way of transferring concepts.
 
-This report evaluates two research papers that address these issues. The first, written by Floarian Deissenboeck and Markus Pizka, tries to define a formal model to create concise and consistent naming schema in their paper \textit{Concise and consistent naming}. The second, \textit{Improving Semantic Consistency of Variable Names with Use-Flow Graph Analysis} written by Yusuke Shinyama, Yoshitaka Arahori, and Katsuhiko Gondow develops a probabilistic model to test whether a variable name reflects its intended usage pattern. 
+This report evaluates two research papers that address these issues. The first, written by Floarian Deissenboeck and Markus Pizka, tries to define a formal model to create concise and consistent naming schema in their paper \textit{Concise and consistent naming}.\cite{deisenbock_concise_2005} The second, \textit{Improving Semantic Consistency of Variable Names with Use-Flow Graph Analysis} written by Yusuke Shinyama, Yoshitaka Arahori, and Katsuhiko Gondow develops a probabilistic model to test whether a variable name reflects its intended usage pattern.\cite{shinyama_improving_2021}
 
 This report summarizes, and produces a compounded conclusion of both papers. At the end of the report a short paragraph describes the approach used for writing this report.
 
 \newpage
 
 \section*{Concise and consistent naming}
-Floarian Deissenboeck et al. preamble their paper by describing why bad naming of identifiers is detrimental to the quality of software. Software engineers are constantly trying to interpret identifier and the concepts they represent. It is therefore important that identifiers meaningfully represent a concept. Identifiers are arbitrarily chosen and the developers often lack a broad understanding of the code base as a whole. When a system evolves, concepts might change or become abandoned; which often leads to improper adaptation of names. These problems damage the coherence of a project and degrade the quality of the code.
+Floarian Deissenboeck et al. preamble their paper by describing why bad naming of identifiers is detrimental to the quality of software. Software engineers are constantly trying to interpret identifier and the concepts they represent.\cite{deisenbock_concise_2005} It is therefore important that identifiers meaningfully represent a concept. Identifiers are arbitrarily chosen and the developers often lack a broad understanding of the code base as a whole. When a system evolves, concepts might change or become abandoned; which often leads to improper adaptation of names. These problems damage the coherence of a project and degrade the quality of the code.
 
 According to the authors, meaningfulness does not properly describe why a variable name is good or bad. They divide meaningfulness into two categories, consistency and conciseness. A variable name is consistent when its name only describes one specific concept. When the name is either homonynous or synonymous to multiple concepts it fails this criteria. The word \textit{break} could mean taking a break or could mean breaking a stick. The word \textit{break} thus requires contextualization to fully understand it, which if not done well, becomes ambiguous. Conciseness is determined by the exactness in which a name describes a concept. A example is a hyponym. The word red is a hyponym of the word color, therefore red describes a object more exact then the word color does. The sentence "the colorful balloon" is more cryptic then the sentence "the red balloon".
 
@@ -48,7 +51,7 @@ The authors have developed a half automated tool for Java developers. The tool, 
 \newpage
 
 \section*{Improving Semantic Consistency}
-Yusuke Shinyama et al. find that the semantic consistency of variable names is an important factor for high level understanding of repositories. In their paper they define an automated method to identify and correct name inconsistency’s over a project. The method is based upon a multitude of research papers; which, in short, conclude that long descriptive names improve understanding and that inconsistent naming results in a decay of code quality.
+Yusuke Shinyama et al. find that the semantic consistency of variable names is an important factor for high level understanding of repositories.\cite{shinyama_improving_2021} In their paper they define an automated method to identify and correct name inconsistency’s over a project. The method is based upon a multitude of research papers; which, in short, conclude that long descriptive names improve understanding and that inconsistent naming results in a decay of code quality.
 
 A multitude of researchers have grasped at the problem of identifying consistency of identifier. One converts source code in word embedding and relates it to the natural language, another uses manually crafted rules to detect naming bugs, and another validates whether method names properly describe the method’s code contents. Shinyama et al. use a novel approach by trying to identify semantic inconsistency of variable names by comparing the relations of variable names to their contexts. Their model does not only look at method names but also at variable names, which accordingly, better infer the project’s high-level design.
 
@@ -74,7 +77,7 @@ To support automation of this process the paper proposes a graph structure -- a 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.7\linewidth]{ufg}
-    \caption{example UFG.}
+    \caption{example UFG. A copy of fig. 3.\cite{shinyama_improving_2021}}
     \label{fig:ufg}
 \end{figure}
 \hfill
@@ -95,7 +98,7 @@ Purely looking at the conclusions of these two papers there seem to exist a rela
 \section*{Assignment approach}
 Firstly I analysed the assignment and developed a high-level plan. This entails that I wrote a small section of the introduction and predefined the sections. 
 
-Secondly I tried to find an academic paper related to the topic. I used a couple of databases, Leiden University Librarie Catalogue and Google Scholar. Found an older paper written by Deissenboeck et al. in 2005, the article itself and a broad selection of Deissenboeck's papers are highly influential according to Semantic Scholar. The paper written by Yusuke et al. is less influential, however it is much more recent (2024). Yusuke et al. have all written a plethora of papers related to the topic and their references used within the article are quite influential. 
+Secondly I tried to find an academic paper related to the topic. I used a couple of databases, Leiden University Librarie Catalogue and Google Scholar. Found an older paper written by Deissenboeck et al. in 2005, the article itself and a broad selection of Deissenboeck's papers are highly influential according to Semantic Scholar. The paper written by Yusuke et al. is less influential, however it is much more recent (2022). Yusuke et al. have all written a plethora of papers related to the topic and their references used within the article are quite influential. 
 
 Thirdly I read both papers and made notes and highlights along the way. Then I summarized each paper individually. I struggled with finding the right balance when it came to descriptiveness and conciseness. So I made quick map with short item descriptions for each paper that I wanted to be part of the summary. It allowed me to keep things comprehensible and logically sequenced. 
 
@@ -105,11 +108,8 @@ At last, I rewrote multiple parts to improve the cohesion and overall flow of th
 
 \end{multicols}
 
-
-
 % the bibliography
-\bibliographystyle{plain}
-\bibliography{references}
+\printbibliography
 
 \end{document}
 

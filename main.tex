@@ -1,12 +1,17 @@
 
 \documentclass[a4paper,12pt]{article}
+\usepackage[a4paper, total={6in, 10in}]{geometry}
 \frenchspacing
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{placeins}
 \graphicspath{ {./images/} }
 \usepackage[pdfauthor={Jenny Vermeltfoort},pdftitle={Model based consistency of variable names for improved high-level understanding.}]{hyperref}
-\usepackage{multicol}
+\usepackage[colaction]{multicol}
+\setlength\columnsep{30pt}
+
+\usepackage[columnwise]{lineno}
+\modulolinenumbers[10]
 
 \usepackage{sectsty}% http://ctan.org/pkg/sectsty
 \usepackage{titlecaps}% http://ctan.org/pkg/titlecaps
@@ -27,6 +32,7 @@
 
 \sectionfont{\centering\MakeUppercase}
 \begin{multicols}{2}
+\linenumbers
 
 \section*{Introduction}
 While software is written to be interpreted by computers it is of key importance that developers can quickly understand its semantics. The naming of identifiers is an important tools for software engineers to meaningfully transfer concepts to their colleagues, who might be maintaining, updating, or refactoring the code. Comprehensibility of these concepts might be restricted by the innate free characteristics of naming conventions within software languages. It is therefore of interest to identify what kind of identifiers are difficult to interpret and whether formal rules may support a more meaningful way of transferring concepts.

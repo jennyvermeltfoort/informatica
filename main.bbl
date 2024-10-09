@@ -1,0 +1,122 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global}
+    \entry{deisenbock_concise_2005}{article}{}
+      \name{author}{2}{}{%
+        {{hash=7d85773118ffe9386b1c4d7d2d08e285}{%
+           family={Deißenböck},
+           familyi={D\bibinitperiod},
+           given={Florian},
+           giveni={F\bibinitperiod}}}%
+        {{hash=b22b00614b5e90c58b630b6a5c2a037c}{%
+           family={Pizka},
+           familyi={P\bibinitperiod},
+           given={Markus},
+           giveni={M\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {St. Louis}%
+      }
+      \strng{namehash}{6bc331e1a643e6f4ec63940726e965c9}
+      \strng{fullhash}{6bc331e1a643e6f4ec63940726e965c9}
+      \strng{bibnamehash}{6bc331e1a643e6f4ec63940726e965c9}
+      \strng{authorbibnamehash}{6bc331e1a643e6f4ec63940726e965c9}
+      \strng{authornamehash}{6bc331e1a643e6f4ec63940726e965c9}
+      \strng{authorfullhash}{6bc331e1a643e6f4ec63940726e965c9}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Software Quality Journal}
+      \field{title}{Concise and consistent naming}
+      \field{volume}{14}
+      \field{year}{2005}
+      \field{pages}{261\bibrangedash 282}
+      \range{pages}{22}
+    \endentry
+    \entry{shinyama_improving_2021}{article}{}
+      \name{author}{3}{}{%
+        {{hash=a067f5c3103ec68e81810795811b4047}{%
+           family={Shinyama},
+           familyi={S\bibinitperiod},
+           given={Yusuke},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=a34e492504bdb1286245959bd1605751}{%
+           family={Arahori},
+           familyi={A\bibinitperiod},
+           given={Yoshitaka},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=588f67ecd6609c530afe450994c42750}{%
+           family={Gondow},
+           familyi={G\bibinitperiod},
+           given={Katsuhiko},
+           giveni={K\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Taipei}%
+      }
+      \strng{namehash}{86ee801dc71ce3ab2d5ecd6b1c9c01e5}
+      \strng{fullhash}{86ee801dc71ce3ab2d5ecd6b1c9c01e5}
+      \strng{bibnamehash}{86ee801dc71ce3ab2d5ecd6b1c9c01e5}
+      \strng{authorbibnamehash}{86ee801dc71ce3ab2d5ecd6b1c9c01e5}
+      \strng{authornamehash}{86ee801dc71ce3ab2d5ecd6b1c9c01e5}
+      \strng{authorfullhash}{86ee801dc71ce3ab2d5ecd6b1c9c01e5}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{2021 28th Asia-Pacific Software Engineering Conference (APSEC)}
+      \field{title}{Improving {Semantic} {Consistency} of {Variable} {Names} with {Use}-{Flow} {Graph} {Analysis}}
+      \field{year}{2022}
+      \field{pages}{223\bibrangedash 232}
+      \range{pages}{10}
+    \endentry
+    \entry{schneiderman_software_1980}{book}{}
+      \name{author}{1}{}{%
+        {{hash=1f3df4d9d44561d195e1ca03f5efdef0}{%
+           family={Schneiderman},
+           familyi={S\bibinitperiod},
+           given={Ben},
+           giveni={B\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Michigan}%
+      }
+      \list{publisher}{1}{%
+        {Winthrop Publishers Inc}%
+      }
+      \strng{namehash}{1f3df4d9d44561d195e1ca03f5efdef0}
+      \strng{fullhash}{1f3df4d9d44561d195e1ca03f5efdef0}
+      \strng{bibnamehash}{1f3df4d9d44561d195e1ca03f5efdef0}
+      \strng{authorbibnamehash}{1f3df4d9d44561d195e1ca03f5efdef0}
+      \strng{authornamehash}{1f3df4d9d44561d195e1ca03f5efdef0}
+      \strng{authorfullhash}{1f3df4d9d44561d195e1ca03f5efdef0}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Software psychology: Human factors in computer and information systems}
+      \field{year}{1980}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

@@ -15,8 +15,6 @@
 #include <iostream>
 
 const uint8_t LETTERS_SIZE = 3;
-const uint8_t EXPECTED_QUANTITY_ARGUMENTS = 6;
-const uint8_t MAX_TAB_SIZE = 8;
 const uint8_t ANSCII_NUMBER_MASK = 0XF;
 const uint8_t ANSCII_NUMBER_0 = 48;
 const uint8_t ANSCII_NUMBER_9 = 57;
@@ -286,6 +284,7 @@ int main(int argc, char *argv[]) {
     std::fstream fs_output_file;
     letter_buf_t input_letters = {0};
     uint8_t tab_size = 0;
+    const uint8_t MAX_TAB_SIZE = 8;
 
     if (argc < ARG_POS_NONE || argv[ARG_POS_INPUT][1] != 'i' ||
         argv[ARG_POS_OUTPUT][1] != 'o' ||
@@ -314,7 +313,8 @@ int main(int argc, char *argv[]) {
     tab_size = static_cast<uint8_t>(argv[ARG_POS_TAB + 1][0] &
                                     ANSCII_NUMBER_MASK);
     if (tab_size > MAX_TAB_SIZE || argv[ARG_POS_TAB + 1][1] != '\0') {
-        std::cout << "Tab size too large! Max is 8." << std::endl;
+        std::cout << "Tab size too large! Max is " << MAX_TAB_SIZE
+                  << "." << std::endl;
         return ERRNO_ERR;
     }
 

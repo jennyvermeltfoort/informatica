@@ -201,9 +201,9 @@ errno_e fs_format(std::fstream &in, std::fstream &out,
 uint16_t fs_count_letter_combination(std::fstream &fs,
                                      letter_buf_t cbuf) {
     uint16_t counter = 0;
-    uint8_t letters[LETTERS_SIZE] = {static_cast<uint8_t>(fs.get()),
-                                     static_cast<uint8_t>(fs.get()),
-                                     static_cast<uint8_t>(fs.get())};
+    letter_buf_t letters = {static_cast<uint8_t>(fs.get()),
+                            static_cast<uint8_t>(fs.get()),
+                            static_cast<uint8_t>(fs.get())};
 
     do {
         if (letters[0] == cbuf[0] && letters[1] == cbuf[1] &&

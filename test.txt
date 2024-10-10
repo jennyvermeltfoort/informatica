@@ -1,1 +1,8 @@
-{{{{{{{{ }}}
+#include <iostream> // Dit is een include-opmerking
+// Deze regel moet volledig worden verwijderd
+int main() {
+    std::cout << "123 196 4994 23333333333333333333333333" << std::endl; // Nog een opmerking
+    // Nog een hele regel als opmerking // bla
+    return 0; // Einde van de functie
+    // aababcaabbabcabbbcccaaaaabc // 3 keer
+}

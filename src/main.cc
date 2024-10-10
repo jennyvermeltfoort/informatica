@@ -57,7 +57,7 @@ inline bool anscii_is_int(uint8_t c) {
     return (c >= ANSCII_NUMBER_0 && c <= ANSCII_NUMBER_9);
 }
 inline bool anscii_is_letter(uint8_t c) {
-    return (c >= ANSCII_LETTER_A && ANSCII_LETTER_Z <= 122);
+    return (c >= ANSCII_LETTER_A && c <= ANSCII_LETTER_Z);
 }
 inline bool anscii_is_whitespace(uint8_t c) {
     return (c == ' ' || c == '\t');
@@ -100,7 +100,7 @@ inline errno_e parser_open_file_stream(std::fstream &fs, char *cbuf,
     return ERRNO_OK;
 };
 
-errno_e parser_letters(char *cbuf, letter_buf_t out) {
+errno_e parser_letters(const char *cbuf, letter_buf_t out) {
     uint8_t i = 0;
 
     do {
@@ -154,7 +154,7 @@ errno_e fs_format(std::fstream &in, std::fstream &out,
     uint8_t c = in.get();
     uint8_t p = '\n';
     int16_t indent = 0;
-    uint8_t i = 0;
+    uint8_t i;
 
     while (!in.eof()) {
         if (p == '\n' && (c == ' ' || c == '\t')) {
@@ -199,7 +199,7 @@ errno_e fs_format(std::fstream &in, std::fstream &out,
 /* Counts an exact cbuf combination of letters within the filestream.
  */
 uint16_t fs_count_letter_combination(std::fstream &fs,
-                                     letter_buf_t cbuf) {
+                                     const letter_buf_t cbuf) {
     uint16_t counter = 0;
     letter_buf_t letters = {static_cast<uint8_t>(fs.get()),
                             static_cast<uint8_t>(fs.get()),
@@ -223,10 +223,10 @@ uint16_t fs_count_letter_combination(std::fstream &fs,
  * can't exceed UINT32_MAX.
  */
 void fs_find_lychrel(std::fstream &fs) {
-    lychrel_number_e rt_val = LYCHREL_NUMBER_NONE;
+    lychrel_number_e rt_val;
     uint32_t number = 0;
     uint8_t iteration = 0;
-    uint8_t c = 0;
+    uint8_t c;
 
     do {
         c = fs.get();

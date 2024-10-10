@@ -7,7 +7,7 @@
  * Numbers within the input file are determined to be Lychrel numbers
  * using the Lychrel algoritme.
  *
- * Author: Jenny Vermeltfoort (j.vermeltfoort@umail.leidenuniv.nl)
+ * Author: Jenny V. 3787494 (j.vermeltfoort@umail.leidenuniv.nl)
  * Date: 9-27-2024
  */
 

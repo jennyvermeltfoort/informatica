@@ -127,9 +127,11 @@ errno_e parser_letters(char *cbuf, letter_buf_t out) {
 
     return ERRNO_OK;
 }
+
 /* Decide whether the number is a Lychrel number using the Lychrel
  * algoritme. A number is considered a Lychrel number when sum of the
- * number and its reverse exceed UINT32_MAX.
+ * number and its reverse after x amount of iterations exceed
+ * UINT32_MAX.
  */
 lychrel_number_e number_is_lychrel(uint32_t number,
                                    uint8_t &iteration) {

@@ -7,6 +7,8 @@ int main() {
 196  
 12   
 4994 
+aabc
+aababcaabbabcabbbcccaaaaabc
 abc 
 xabcx 
 ab ab 

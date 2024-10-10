@@ -1,26 +1,5 @@
 #include <iostream> 
 int main() {
-    std::cout << "Hello World!" << std::endl; 
+    std::cout << "123 196 4994 23333333333333333333333333" << std::endl; 
     return 0; 
-}
-123  
-196  
-12   
-4994 
-abc 
-xabcx 
-ab ab 
-aBc 
-def 
-abcabcabc 
-#include <iostream>
-int main() {
-    int a = 5;
-    if (a == 5) { 
-        std::cout << "A is 5" << std::endl;
-    }
-    else {
-        std::cout << "A is not 5" << std::endl;  
-    }
-    return 0;
 }

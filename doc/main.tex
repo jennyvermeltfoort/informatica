@@ -3,6 +3,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage{xcolor}
+\usepackage{float}
 
 \parindent=0pt
 \usepackage{hyperref}
@@ -40,6 +41,7 @@
 \begin{document}
 
 \selectlanguage{dutch}
+\def\tablename{Tabel}
 
 \maketitle
 
@@ -56,30 +58,31 @@ gecontroleerd op Lychrel-nummers met behulp van het Lychrel-algoritme. Zie \hype
 \label{sec:eisen}
 De applicatie voldoet aan de volgende eisen:
 \begin{enumerate}
-      \item De applicatie neemt een ingangsprogramma en produceerd een uitgangsprogramma. Het uitgangsprogramma is een
-            getransformeerd ingangsprogramma.
-      \item De applicatie verwijderd al het "//" commentaar van het ingangsprogramma.
-      \item De applicatie formateerd het ingangsprogramma zodat de inspring per regel in het geheel exact is. Met een
+      \item De applicatie neemt een ingang-programma en produceert een uitgang-programma. Het uitgang-programma is een
+            getransformeerd ingang-programma.
+      \item De applicatie verwijderd al het "//" commentaar van het ingang-programma.
+      \item De applicatie formatteert het ingang-programma zodat de inspring per regel in het geheel exact is. Met een
             argument wordt aangegeven hoeveel spaties \'e\'en insprong is.
       \item De applicatie controleert of het aantal open accolades gelijk is aan het aantal gesloten accolades.
-      \item De applicatie berekend hoevaak een met een argument ingegeven combinatie van letters voorkomt in het
-            ingangsprogramma. Inclusief commentaar, hoofdlettergebruik wordt genegeerd, "abc" is dus gelijk aan
+      \item De applicatie berekend hoe vaak een met een argument ingegeven combinatie van letters voorkomt in het
+            ingang-programma. Inclusief commentaar, hoofdlettergebruik wordt genegeerd, "abc" is dus gelijk aan
             "ABC".
-      \item De applicatie bepaald voor elk getal groter dan nul in het ingangsprogramma of het een Lychrel-getal is.
-            Verificatie
-            wordt tot INT\_MAX uitgevoerd. In het CLI-interface wordt het Lychrel-getal afgedrukt en het aantal
+      \item De applicatie bepaald voor elk getal groter dan nul in het ingang-programma of het een Lychrel-getal is. Een Lychrel-getal is een getal waar het onbekend is of een getal palindroom ontwikkeld wanneer de Lychrel-methode wordt toegepast. De Lychrel-methode gaat als volgt: neem getal x, is x een palindroom? Zo nee, neem de som van het getal x en het getal x omgedraaid. Is dit nieuwe getal y een palindroom? Zo nee, herhaal de procedure met het getal y.
+      \item Het Lychrel algoritme wordt uitgevoerd totdat het getal y INT\_MAX bereikt.
+      \item In de CLI-interface wordt het Lychrel-getal afgedrukt en het aantal
             iteraties
-            noodzakelijk om het palinroom te behalen. Bij INT\_MAX iteraties of meer wordt gemeld dat de applicatie het
+            noodzakelijk om het palindroom te behalen. Bij INT\_MAX iteraties of meer wordt gemeld dat de applicatie het
             niet weet voor dit
-            getal. Getallen binnen commentaar worden genegeerd. Enkel invoergetallen tussen 1 en INT\_MAX voldoen.
-      \item De applicatie verwacht met een argument de locatie van het ingangsprogramma. Wanneer het ingangsprogramma
+            getal. Wanneer het getal in het ingang-programma te INT\_MAX overtreft wordt hier een melding voor gegeven.
+      \item Het Lychrel algoritme negeerd getallen binnen commentaar en enkel invoer-getallen tussen 1 en INT\_MAX worden getest.
+      \item De applicatie verwacht met een argument de locatie van het ingang-programma. Wanneer het ingang-programma
             niet bestaat stopt het programma.
-      \item De applicatie mag enkel het ingangsprogramma lezen.
-      \item De applicatie verwacht een foutloos C++ programma. I.e. het ingangsprogramma moet te compileren zijn met
+      \item De applicatie mag enkel het ingang-programma lezen.
+      \item De applicatie verwacht een foutloos C++ programma. I.e. het ingang-programma moet te compileren zijn met
             een
             g++ compiler.
-      \item De applicatie controleert niet of het ingangsprogramma foutloos is.
-      \item De applicatie verwacht met een argument de locatie van het uitgangsprogramma. Wanneer het uitgangsprogramma
+      \item De applicatie controleert niet of het ingang-programma foutloos is.
+      \item De applicatie verwacht met een argument de locatie van het uitgang-programma. Wanneer het uitgang-programma
             niet bestaat wordt het aangemaakt, wanneer het wel bestaat wordt het overschreven.
       \item De applicatie print aan het eind van het programma het volgende in het CLI-interface:
             \begin{enumerate}
@@ -89,13 +92,13 @@ De applicatie voldoet aan de volgende eisen:
 \end{enumerate}
 
 \section{Gebruik}
-Het programma kan met de volgende call aangeroepen worden:
+Het programma kan met de volgende call aangeroepen worden, de volgorde van de argumenten is absoluut:
 \lstinputlisting[caption=usage.txt,
 label={lst:listing-usage},
 language=C++,
 style=myStyle]{./logs/usage.txt}
 
-Een voorbeeld volgt: snipped \ref{lst:listing-input} toont een voorbeeld input file en snippeds \ref{lst:listing-stdout} en \ref{lst:listing-output} laten het resultaat zien van de applicatie.
+Een voorbeeld volgt: snippet \ref{lst:listing-input} toont een voorbeeld input file en snippets \ref{lst:listing-stdout} en \ref{lst:listing-output} laten het resultaat zien van de applicatie.
 
 \lstinputlisting[caption=input.txt,
 label={lst:listing-input},
@@ -110,35 +113,55 @@ label={lst:listing-output},
 language=C++,
 style=myStyle]{./logs/output.txt}
 
+\subsection{Accolade}
+Het volgende ingang-programma produceert de volgende output.
+\lstinputlisting[caption=input.txt,
+label={lst:listing-input},
+language=C++,
+style=myStyle]{./logs/accolade/test.txt}
+\lstinputlisting[caption=stdout.txt,
+label={lst:listing-stdout},
+language=bash,
+style=myStyle]{./logs/accolade/stdout.log}
+
 \section{Vragen}
 \textit{Stel dat je een door het programma netjes afgedrukte file F opnieuw met het programma netjes af laat drukken. Is het resultaat dan altijd precies hetzelfde als F?}
-\newline Het format (fs\_format) process verwijderd commentaar en herproduceerd de indenting van de file. 
+\newline Het format (fs\_format) proces verwijderd commentaar en herproduceerd de indenting van de file. 
 Aangezien het commentaar in F is verwijderd zal deze logica niets doen bij opeenvolgende iteraties.
 De applicatie is geschreven met het idee dat de indenting van de file word geherproduceerd, 
 met de nadruk op \textit{her}. De logica zal daarmee exact dezelfde indenting produceren voor elke 
 regel onafhankelijk van het aantal iteraties waarmee F door de applicatie wordt gehaald.
 Tenzij een bug ervoor zorgt dat er meer indents geproduceerd of geconsumeerd worden zal 
-F dus altijd gelijk blijven. Het is ook mogelijk dat de gebruiker een andere tabsize gebruikt, 
+F dus altijd gelijk blijven. Het is ook mogelijk dat de gebruiker een andere tab size gebruikt, 
 wat voor variatie kan zorgen.
 \\ \hfill \\
 \textit{Voor grondtal 2 bestaan Lychrel-getallen. Geef er één, en bewijs de eigenschap.}
 \newline 
+Het nummer 22 is een Lychrel-getal in base 2. Het bewijs word geleverd door een patroon wat er ontwikkeld wanneer de Lychrel methode wordt toegepast. Voor elke 4n iteraties van de methode ontwikkeld zich het volgende patroon: 10, gevolgd door n+1 éénen, gevolgd door een 01, gevolgd door n+1 nullen. Het binaire getal 10110100 ontwikkeld zich bijvoorbeeld na 4 stappen. Deze getallen met initieel getal 22 zullen zich dus nooit tot een palindroom ontwikkelen.
 
-
+\newpage
 \section{Tijd}
-Zie \ref{tab:time} voor de tijdsverantwoording.
-\\ \hfill \\
-\begin{tabular}{ l c r }
+Zie tabel \ref{tab:time} voor de tijd verantwoording.
+
+
+\begin{table}[H]
+      \begin{center}
+      \begin{tabular}{ l c r }
+            Item & Uur & Datum \\ \hline
+            Eisen verwerkt & 1 & 22-09-2024 \\
+            Plan bedacht & 1 & 22-09-2024 \\
+            Argument parser & 1 & 26-09-2024 \\
+            File formatter & 2 & 26-09-2024 \\
+            Letter counter & 0.5 & 26-09-2024 \\
+            Lychrel algoritme & 2 & 26-09-2024 \\
+            Afwerking & 1 & 27-09-2024 \\
+            Afwerking & 1 & 10-10-2024 \\
+      \end{tabular}
+      
+      \caption{Tijd verantwoording}
       \label{tab:time}
-      Item & Uur & Datum \\ \hline
-      Eisen verwerkt & 1 & 22-09-2024 \\
-      Plan bedacht & 1 & 22-09-2024 \\
-      Argument parser & 1 & 26-09-2024 \\
-      File formatter & 2 & 26-09-2024 \\
-      Letter counter & 0.5 & 26-09-2024 \\
-      Lychrel algoritme & 2 & 26-09-2024 \\
-      Afwerking & 1 & 27-09-2024 \\
-    \end{tabular}
+\end{center}
+\end{table}
 
 \section{Code}\label{sec:code}
 \lstinputlisting[caption=main.cpp,

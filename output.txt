@@ -1,5 +1,1 @@
-#include <iostream> 
-int main() {
-    std::cout << "123 196 4994 23333333333333333333333333" << std::endl; 
-    return 0; 
-}
+{{{{{{{{ }}}

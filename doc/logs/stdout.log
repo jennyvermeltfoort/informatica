@@ -1,0 +1,10 @@
+> Searching the letter combination: 'abc'.
+Exact letter combination 'abc' was found '3' time(s).
+
+> Searching for lychrel numbers.
+Number: '123' has a delayed palindroom found after '1' iterations of the lychrel algoritm, thus it is not a lychrel number.
+Can't find palindroom for base number: '196'  after '17' iterations of the lychrel algoritm. Number thus could be considered a lychrel number.
+Number: '4994' is a palindroom, thus it is not a lychrel number.
+Skipped the number starting with '2333333333', it is too big to parse.
+
+> File format done.

@@ -9,11 +9,17 @@
 #include <thread>
 #include <vector>
 
-const uint16_t REFRESH_RATE_WORLD_MS = 200;
+/* Configuration. */
+const char DEFAULT_CELL_ALIVE_C = '&';
+const char DEFAULT_CELL_DEAD_C = ' ';
+const char DEFAULT_CELL_BORDER_C = '@';
+const uint16_t DEFAULT_REFRESH_RATE = 1000;
+const uint16_t INTRO_DURATION_S = 5;
 const uint16_t WORLD_SIZE_Y = 1000;
 const uint16_t WORLD_SIZE_X = 1000;
 const uint16_t VIEW_SIZE_Y = 40;
 const uint16_t VIEW_SIZE_X = 150;
+
 typedef char view_storage_t[VIEW_SIZE_Y][VIEW_SIZE_X];
 typedef bool world_storage_t[WORLD_SIZE_Y][WORLD_SIZE_X];
 
@@ -67,6 +73,8 @@ class View {
         std::cout << "\033[" << +point.y << ";" << +point.x << "H"
                   << std::flush;
     }
+    void cursor_hide(void) { std::cout << "\033[?25l" << std::flush; }
+    void cursor_show(void) { std::cout << "\033[?25h" << std::flush; }
     void cursor_move_start(void) { cursor_move(point_t{0, 0}); }
     void cursor_move_end(void) { cursor_move(size); }
     void cursor_move_input(void) {
@@ -89,7 +97,10 @@ class View {
     void cursor_restore(void) { std::cout << "\033[u" << std::flush; }
 
    public:
-    View() { draw_frame(); }
+    View() {
+        cursor_erase_display(2);
+        cursor_hide();
+    }
     void reset(void) { draw_frame(); }
 
     void set_print_callback(std::function<void(void)> cb) {
@@ -110,6 +121,7 @@ class View {
         }
         std::cout << std::endl;
         std::cout << ">> ";
+        cursor_show();
     }
 
     void refresh_info(void) {
@@ -143,7 +155,7 @@ class View {
         view[pos.y][pos.x] = c;
     }
 
-    void refresh(void) {
+    void refresh_view(void) {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
         uint8_t i_x;
         uint8_t i_y;
@@ -166,15 +178,14 @@ class View {
         }
         std::cout << std::flush;
         cursor_restore();
-        refresh_info();
     }
 };
 
 class World {
    private:
-    char cell_alive = '&';
-    char cell_dead = ' ';
-    char cell_border = '@';
+    char cell_alive = DEFAULT_CELL_ALIVE_C;
+    char cell_dead = DEFAULT_CELL_DEAD_C;
+    char cell_border = DEFAULT_CELL_BORDER_C;
     uint32_t infest_random_view_cell_default = 1000;
     uint32_t infest_random_world_cell_default = 1000000;
     point_t world_size = {WORLD_SIZE_Y, WORLD_SIZE_X};
@@ -186,7 +197,7 @@ class World {
         world_size.y / 2 - view_size.y / 2,
         world_size.x / 2 - view_size.x / 2,
     };
-    uint16_t refresh_rate = REFRESH_RATE_WORLD_MS;
+    uint16_t refresh_rate = DEFAULT_REFRESH_RATE;
     point_t world_start_pos = point_t{1, 1};
     point_t world_size_life = {world_size.y - 2, world_size.x - 2};
     std::mutex mutex_world_update;
@@ -372,7 +383,7 @@ class World {
             }
         }
 
-        view.refresh();
+        view.refresh_view();
     }
 
     void view_refresh(void) { view_move(view_pos); }
@@ -467,15 +478,61 @@ class World {
         view_refresh();
     }
 
+    void intro(void) {
+        infest_random_view(1000);
+        const char intro_line_1[14] = {"world of life"};
+        const char intro_line_2[22] = {"by jenny vermeltfoort"};
+        uint8_t i;
+        uint8_t x;
+        uint8_t y;
+
+        for (i = 0; i < INTRO_DURATION_S * 10; i++) {
+            update_world();
+            for (x = 0; x < 28; x++) {
+                for (y = 0; y < 4; y++) {
+                    view.update(point_t{view_size.y / 2 - 2 + y,
+                                        view_size.x / 2 - 14 + x},
+                                ' ');
+                }
+            }
+            for (x = 0; x < view_size.y; x++) {
+                for (y = 0; y < view_size.x; y++) {
+                    if (x == 0 || y == 0 || x == view_size.y - 1 ||
+                        y == view_size.x - 1) {
+                        view.update(point_t{x, y}, '@');
+                    }
+                }
+            }
+            for (x = 0; x < 13; x++) {
+                view.update(point_t{view_size.y / 2 - 1,
+                                    view_size.x / 2 - 7 + x},
+                            intro_line_1[x]);
+            }
+            for (x = 0; x < 21; x++) {
+                view.update(point_t{view_size.y / 2,
+                                    view_size.x / 2 - 11 + x},
+                            intro_line_2[x]);
+            }
+            view.refresh_view();
+            std::this_thread::sleep_for(
+                std::chrono::milliseconds(100));
+        }
+    }
+
     void run(void) {
-        view_move(view_pos);
+        intro();
+        clear_world();
+        reset_view();
+        view.draw_frame();
+        view.refresh_info();
         view.set_user_cursor_pos({view_size.y / 2, view_size.x / 2});
 
         while (!flag_stop) {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(refresh_rate));
             update_world();
-            view.refresh();
+            view.refresh_view();
+            view.refresh_info();
         }
     }
 

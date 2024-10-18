@@ -6,6 +6,7 @@ TARGET 	= $(SRC)/main.cc
 
 main: $(TARGET)
 	$(CC) $(CFLAGS) -o main.o $(TARGET)
+	$(CC) -fverbose-asm main.o -S $(TARGET)
 
 all: main
 

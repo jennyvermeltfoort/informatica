@@ -1,6 +1,9 @@
 
+#define TIMED = 1;
 
+#ifdef TIMED
 #include <chrono>
+#endif
 #include <cstdlib>
 #include <ctime>
 #include <functional>
@@ -90,10 +93,10 @@ class View {
         cursor_move(p);
     }
 
-    void cursor_erase_display(uint8_t n) {
+    void cursor_erase_display(const uint8_t n) {
         std::cout << "\033[" << +n << "J" << std::flush;
     }
-    void cursor_erase_line(uint8_t n) {
+    void cursor_erase_line(const uint8_t n) {
         std::cout << "\033[" << +n << "K" << std::flush;
     }
 
@@ -147,10 +150,13 @@ class View {
 
     point_t get_pos_cursor_user(void) { return user_cursor; }
 
-    void set_user_cursor_pos(point_t pos) {
-        pos.y = (pos.y > size.y - 1) ? size.y - 1 : pos.y;
-        pos.x = (pos.x > size.x - 1) ? size.x - 1 : pos.x;
-        user_cursor = pos;
+    void set_user_cursor_pos(const point_t pos) {
+        user_cursor = {
+            static_cast<uint16_t>((pos.y > size.y - 1) ? size.y - 1
+                                                       : pos.y),
+            static_cast<uint16_t>((pos.x > size.x - 1) ? size.x - 1
+                                                       : pos.x),
+        };
     }
 
     point_t get_size(void) { return size; }
@@ -235,14 +241,17 @@ class World {
                   << +infest_random_world_cell_default << "'; ";
     }
 
-    inline bool point_get_value(const point_t pos) {
+    __attribute__((always_inline)) bool point_get_value(
+        const point_t pos) {
         return world[pos.y][pos.x].value;
     }
-    inline uint8_t point_get_neighbour_count(const point_t pos) {
+    __attribute__((always_inline)) uint8_t point_get_neighbour_count(
+        const point_t pos) {
         return world[pos.y][pos.x].neighbour_count;
     }
-    void point_set_value(const point_t pos, bool value) {
-        const int8_t increment_value = (value) ? 1 : -1;
+
+    void point_set_value(const point_t pos, const bool value) {
+        int8_t increment_value = (value) ? 1 : -1;
         world_alive_counter += increment_value;
         world[pos.y - 1][pos.x - 1].neighbour_count +=
             increment_value;
@@ -258,7 +267,7 @@ class World {
             increment_value;
         world[pos.y][pos.x].value = value;
     }
-    void set_cell_character(char &cell, char c) {
+    void set_cell_character(char &cell, const char c) {
         if (anscii_is_symbol(c) || c == ' ') {
             cell = c;
             view_refresh_world();
@@ -279,12 +288,15 @@ class World {
         };
     }
 
-    inline void view_update_bool(const point_t pos, bool value) {
+    inline void view_update_bool(const point_t pos,
+                                 const bool value) {
         view.update(pos, (value) ? cell_alive : cell_dead);
     }
 
     inline void events_clear(void) { event_counter = 0; }
-    inline void event_add(point_t e) { events[event_counter++] = e; }
+    inline void event_add(const point_t e) {
+        events[event_counter++] = e;
+    }
     void events_process(void) {
         for (uint32_t i = 0; i < event_counter; i++) {
             point_set_value(events[i], !point_get_value(events[i]));
@@ -293,25 +305,27 @@ class World {
     }
 
     void points_health_check(void) {
+        static const uint16_t limit_y = world_size.y - 1;
+        static const uint16_t limit_x = world_size.x - 1;
         point_t i = {};
+        uint8_t count;
 
-        for (i.y = 1; i.y < world_size.y - 1; i.y++) {
-            for (i.x = 1; i.x < world_size.x - 1; i.x++) {
+        for (i.y = 1; i.y < limit_y; i.y++) {
+            for (i.x = 1; i.x < limit_x; i.x++) {
+                count = point_get_neighbour_count(i);
                 if (point_get_value(i)) {
-                    if ((point_get_neighbour_count(i) > 3 ||
-                         point_get_neighbour_count(i) < 2)) {
+                    if (count > 3 || count < 2) {  // faster?
                         event_add(i);
                     }
-                } else {
-                    if (point_get_neighbour_count(i) == 3) {
-                        event_add(i);
-                    }
+                } else if (count == 3) {
+                    event_add(i);
                 }
             }
         }
     }
 
     void world_generate(void) {
+        const std::lock_guard<std::mutex> lock(mutex_world_update);
         points_health_check();
         events_process();
     }
@@ -439,30 +453,34 @@ class World {
 
     void view_refresh_input(void) { view.refresh_input(); }
 
-    void set_cell_alive(char c) { set_cell_character(cell_alive, c); }
-    void set_cell_dead(char c) { set_cell_character(cell_dead, c); }
-    void set_cell_border(char c) {
+    void set_cell_alive(const char c) {
+        set_cell_character(cell_alive, c);
+    }
+    void set_cell_dead(const char c) {
+        set_cell_character(cell_dead, c);
+    }
+    void set_cell_border(const char c) {
         set_cell_character(cell_border, c);
     }
-    void set_infest_random_view_cell_default(uint32_t cells) {
+    void set_infest_random_view_cell_default(const uint32_t cells) {
         infest_random_view_cell_default = cells;
     }
-    void set_infest_random_world_cell_default(uint32_t cells) {
+    void set_infest_random_world_cell_default(const uint32_t cells) {
         infest_random_world_cell_default = cells;
     }
-    void set_view_step_size_y(uint32_t y) {
+    void set_view_step_size_y(const uint32_t y) {
         view_step_size.y = y;
         view.refresh_info();
     }
-    void set_view_step_size_x(uint32_t x) {
+    void set_view_step_size_x(const uint32_t x) {
         view_step_size.x = x;
         view.refresh_info();
     }
-    void set_refresh_rate(uint16_t rate) {
+    void set_refresh_rate(const uint16_t rate) {
         refresh_rate = rate;
         view.refresh_info();
     }
-    void set_cursor_pos(point_t pos) {
+    void set_cursor_pos(const point_t pos) {
         view.set_user_cursor_pos(pos);
         view.refresh_info();
     }
@@ -520,12 +538,15 @@ class World {
     }
 
     void infest_random(const point_t pos, const point_t size,
-                       uint32_t cells) {
+                       const uint32_t cells) {
         const std::lock_guard<std::mutex> lock(mutex_world_update);
         uint32_t i;
         point_t p;
 
-        for (i = 0; i < cells; i++) {
+        for (i = 0; i < std::min(WORLD_SIZE_X * WORLD_SIZE_Y -
+                                     world_alive_counter,
+                                 cells);
+             i++) {
             p = {
                 static_cast<uint16_t>(rand() % size.y + pos.y),
                 static_cast<uint16_t>(rand() % size.x + pos.x),
@@ -577,10 +598,21 @@ class World {
         while (!flag_stop) {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(refresh_rate));
-
+#ifdef TIMED
+            auto strt = std::chrono::high_resolution_clock::now();
+#endif
             world_generate();
             view_refresh_world();
             view.refresh_info();
+#ifdef TIMED
+            auto stp = std::chrono::high_resolution_clock::now();
+            auto duration =
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    stp - strt);
+            std::cout << "Time taken by function: "
+                      << duration.count() << " microseconds"
+                      << std::endl;
+#endif
         }
     }
 

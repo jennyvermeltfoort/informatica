@@ -1,5 +1,6 @@
 
 
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <functional>
@@ -285,6 +286,7 @@ class World {
     void points_health_check(void) {
         point_t i = {};
         uint16_t neighbour_count;
+        auto start = std::chrono::high_resolution_clock::now();
 
         for (i.y = 1; i.y < world_size.y - 1; i.y++) {
             for (i.x = 1; i.x < world_size.x - 1; i.x++) {
@@ -298,6 +300,12 @@ class World {
                 }
             }
         }
+
+        auto sp = std::chrono::high_resolution_clock::now();
+        auto duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                sp - start);
+        std::cout << duration.count() << std::endl;
     }
 
     void update_world(void) {
@@ -744,7 +752,134 @@ void loop_input(World &world) {
     }
 }
 
+typedef struct NODE_T node_t;
+typedef struct NODE_T {
+    node_t *next_y;
+    node_t *next_x;
+    node_t *next_xy;
+    node_t *prev;
+    point_t p;
+    uint16_t d;
+} node_t;
+
+node_t *node_list = NULL;
+
+node_t *node_make_new(point_t pos, uint16_t min_pos) {
+    return new node_t{
+        .next_y = NULL,
+        .next_x = NULL,
+        .next_xy = NULL,
+        .prev = NULL,
+        .p = pos,
+        .d = min_pos,
+    };
+}
+
+bool node_is_pos_equal(node_t *node, point_t pos) {
+    return (node->p.y == pos.y && node->p.x == pos.x);
+}
+
+bool node_is_before_pos_xy(node_t *node, point_t pos) {
+    return (node->p.y < pos.y && node->p.x < pos.x);
+}
+
+bool node_is_before_pos_y(node_t *node, point_t pos) {
+    return (node->p.y < pos.y);
+}
+
+bool node_is_before_pos_x(node_t *node, point_t pos) {
+    return (node->p.x < pos.x);
+}
+
+bool node_is_after_pos(node_t *node, point_t pos) {
+    return (node->p.y > pos.y || node->p.x > pos.x);
+}
+
+bool node_is_after_pos_xy(node_t *node, point_t pos) {
+    return (node->p.y > pos.y && node->p.x > pos.x);
+}
+
+bool node_is_after_pos_y(node_t *node, point_t pos) {
+    return (node->p.y > pos.y);
+}
+
+bool node_is_after_pos_x(node_t *node, point_t pos) {
+    return (node->p.x > pos.x);
+}
+
+node_t *node_list_add(node_t **node_ptr, point_t pos) {
+    node_t *node_new;
+    node_t *node_current = *node_ptr;
+    uint16_t min_pos = (pos.x < pos.y) ? pos.x : pos.y;
+
+    if (node_current == NULL) {
+        *node_ptr = node_make_new(pos, min_pos);
+        return NULL;
+    }
+
+    if (node_is_pos_equal(node_current, pos)) {
+        return NULL;
+    }
+
+    if (node_current->d > min_pos) {
+        node_new = node_make_new(pos, min_pos);
+        node_new->next_xy = node_current;
+        node_current->prev = node_new;
+        *node_ptr = node_new;
+        return NULL;
+    } else if (node_current->d == min_pos &&
+               node_is_after_pos(node_current, pos)) {
+        // on same diagnal
+        node_new = node_make_new(pos, min_pos);
+        if (node_is_after_pos_x(node_current, pos)) {
+            node_new->next_x = node_current;
+            node_new->next_xy = node_current->next_xy;
+        } else if (node_is_after_pos_y(node_current, pos)) {
+            node_new->next_y = node_current;
+            node_new->next_xy = node_current->next_xy;
+        }
+        node_current->next_xy = NULL;
+        node_current->prev = node_new;
+        *node_ptr = node_new;
+        return NULL;
+    }
+
+    if (node_is_before_pos_xy(node_current, pos)) {
+        node_new = node_list_add(&node_current->next_xy, pos);
+    } else if (node_is_before_pos_x(node_current, pos)) {
+        node_new = node_list_add(&node_current->next_x, pos);
+    } else {
+        node_new = node_list_add(&node_current->next_y, pos);
+    }
+
+    node_new->prev = node_current;
+    return node_new;
+}
+
+void node_print_list(node_t **node_ptr) {
+    node_t *node = *node_ptr;
+
+    if (node == NULL) {
+        return;
+    }
+
+    std::cout << "Node: " << node->p.y << "," << node->p.x << ";"
+              << std::endl;
+
+    node_print_list(&node->next_x);
+    node_print_list(&node->next_y);
+    node_print_list(&node->next_xy);
+}
+
 int main() {
+    node_list_add(&node_list, point_t{1, 1});
+    node_list_add(&node_list, point_t{0, 5});
+    node_list_add(&node_list, point_t{0, 4});
+    node_list_add(&node_list, point_t{1, 0});
+
+    node_print_list(&node_list);
+    return 1;
+
     World world;
 
     std::srand(std::time(nullptr));

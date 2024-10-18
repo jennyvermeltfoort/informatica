@@ -1,0 +1,1 @@
+took 17 to 20 miliseconds with 10000 cells alive.

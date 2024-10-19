@@ -402,6 +402,27 @@ class World {
         view_refresh_world();
     }
 
+    void fill(const point_t pos, const point_t size) {
+        const std::lock_guard<std::mutex> lock(mutex_world_update);
+        point_t i = {};
+        point_t p = transform_pos_view_boundaries(pos);
+        cell_t * world_ptr;
+        uint16_t limit_y = p.y + size.y;
+        uint16_t limit_x = p.x + size.x;
+
+        events_clear();
+
+        for (i.y = p.y; i.y < limit_y; i.y++) {
+            world_ptr = &world[i.y][p.x];
+            for (i.x = p.x; i.x < limit_x; i.x++) {
+                point_set_value(world_ptr, true);
+                world_ptr++;
+            }
+        }
+
+        view_refresh_world();
+    }
+
     void intro(void) {
         infest_random_view(1000);
         const char intro_line_1[14] = {"world of life"};
@@ -499,8 +520,6 @@ class World {
     point_t get_pos_cursor_view(void) {
         return view.get_pos_cursor_user();
     }
-    point_t get_world_size(void) { return world_size; }
-    point_t get_view_size(void) { return view_size; }
 
     void view_move(const point_t pos) {
         view_pos = transform_pos_view_boundaries(pos);
@@ -581,6 +600,7 @@ class World {
         clear(world_start_pos, world_size_life);
     }
     void clear_view(void) { clear(view_pos, view_size); }
+
     void reset_view(void) {
         view.reset();
         view.draw_frame();
@@ -600,6 +620,7 @@ class World {
         while (!flag_stop) {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(refresh_rate));
+            fill(world_start_pos, world_size_life);
 #ifdef TIMED
             auto strt = std::chrono::high_resolution_clock::now();
 #endif

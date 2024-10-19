@@ -1,5 +1,5 @@
 //
-//#define TIMED = 1;
+#define TIMED = 1;
 
 #ifdef TIMED
 #include <chrono>
@@ -140,7 +140,7 @@ class View {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
         cursor_move_input();
         cursor_erase_line(0);
-        std::cout << ">> ";
+        std::cout << ">> " << std::flush;
     }
 
     point_t get_pos_cursor_user(void) { return user_cursor; }
@@ -164,15 +164,17 @@ class View {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
         uint8_t i_x;
         uint8_t i_y;
+        char *view_ptr ;
 
         cursor_save();
         cursor_move_end();
         cursor_erase_display(1);
         cursor_move_start();
 
-        for (i_y = 0; i_y < size.y; i_y++) {
+        for (i_y = 0; i_y < size.y ; i_y++) {
+            view_ptr = &view[i_y][0];
             for (i_x = 0; i_x < size.x; i_x++) {
-                std::cout << view[i_y][i_x];
+                std::cout << *view_ptr++;
             }
             std::cout << std::endl;
         }
@@ -203,7 +205,7 @@ class World {
     point_t world_start_pos = point_t{1, 1};
 
     cell_t **events = new cell_t *[WORLD_SIZE_X * WORLD_SIZE_Y];
-    uint32_t event_counter = 0;
+    cell_t **event_current = events;
 
     View view;
     const point_t view_size = view.get_size();
@@ -217,10 +219,12 @@ class World {
     uint32_t world_alive_counter = 0;
     uint32_t view_alive_counter = 0;
     bool flag_stop = false;
+    point_t world_cursor_position;
+
 
     void print_info(void) {
-        std::cout << "Cursor[y,x]: '" << +get_pos_cursor_world().y
-                  << "," << +get_pos_cursor_world().x << "'; ";
+        std::cout << "Cursor[y,x]: '" << +world_cursor_position.y
+                  << "," << +world_cursor_position.x << "'; ";
         std::cout << "Cell symbol[alive, dead, "
                      "border]: '"
                   << cell_alive << "," << cell_dead << ","
@@ -276,13 +280,11 @@ class World {
         view.update(pos, (value) ? cell_alive : cell_dead);
     }
 
-    inline void events_clear(void) { event_counter = 0; }
-    inline void event_add(cell_t *e) { events[event_counter++] = e; }
+    inline void events_clear(void) { event_current = events; }
+    inline void event_add(cell_t *e) { *event_current++ = e; }
     void events_process(void) {
-        cell_t **event_ptr = events;
-        for (uint32_t i = 0; i < event_counter; i++) {
-            point_set_value(*event_ptr, !(*event_ptr)->value);
-            event_ptr++;
+        while (event_current-- != events) {
+            point_set_value(*event_current, !(*event_current)->value);
         }
         events_clear();
     }
@@ -295,7 +297,7 @@ class World {
 
         for (i.y = 1; i.y < limit_y; i.y++) {
             world_ptr = &world[i.y][1];
-            for (i.x = limit_x; i.x > 0; i.x--) {
+            for (i.x = 1; i.x < limit_x; i.x++) {
                 if (((world_ptr->value) &&
                      (world_ptr->neighbour_count > 3 ||
                       world_ptr->neighbour_count < 2)) ||
@@ -477,16 +479,14 @@ class World {
     void set_cursor_pos(const point_t pos) {
         view.set_user_cursor_pos(pos);
         view.refresh_info();
-    }
-
-    point_t get_pos_cursor_world(void) {
-        return {
+        world_cursor_position = {
             static_cast<uint16_t>(view_pos.y +
                                   get_pos_cursor_view().y),
             static_cast<uint16_t>(view_pos.x +
                                   get_pos_cursor_view().x),
         };
     }
+
     point_t get_pos_cursor_view(void) {
         return view.get_pos_cursor_user();
     }
@@ -563,8 +563,7 @@ class World {
 
     void toggle_cursor_value(void) {
         const std::lock_guard<std::mutex> lock(mutex_world_update);
-        const point_t p = get_pos_cursor_world();
-        event_add(&world[p.y][p.x]);
+        event_add(&world[world_cursor_position.y][world_cursor_position.x]);
         events_process();
         view_refresh_world();
     }
@@ -603,10 +602,11 @@ class World {
             auto duration =
                 std::chrono::duration_cast<std::chrono::microseconds>(
                     stp - strt);
-            std::cout << "Time taken by function: "
+            std::cout << std::endl << "Time taken by function: "
                       << duration.count() << " microseconds"
                       << std::endl;
 #endif
+            view.refresh_input();
         }
     }
 

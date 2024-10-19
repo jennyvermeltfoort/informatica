@@ -204,7 +204,7 @@ class World {
     point_t world_size_life = {WORLD_SIZE_Y - 2, WORLD_SIZE_X - 2};
     point_t world_start_pos = point_t{1, 1};
 
-    cell_t **events = new cell_t *[WORLD_SIZE_X * WORLD_SIZE_Y];
+    cell_t **events = new cell_t *[WORLD_SIZE_X * WORLD_SIZE_Y]; // allocate to heap instead of stack.
     cell_t **event_current = events;
 
     View view;

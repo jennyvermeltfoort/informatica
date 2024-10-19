@@ -67,9 +67,13 @@ class View {
     std::mutex mutex_cursor;
     point_t user_cursor = {VIEW_SIZE_Y + 1, VIEW_SIZE_X + 1};
     std::function<void(void)> cb_print_info;
-    uint16_t line_input = size.y + 5;
+    const uint8_t size_info_line = 3;
+    uint16_t line_input = size.y + size_info_line + 3;
     uint16_t line_info = size.y + 2;
     bool flag_cb_print_info_set = false;
+
+    const char info_frame_character = '-';
+    const std::string input_start_string = ">> ";
 
     void cursor_move(const point_t point) {
         std::cout << "\033[" << +point.y << ";" << +point.x << "H"
@@ -112,17 +116,23 @@ class View {
 
     void draw_frame(void) {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
+        uint16_t i;
+
         cursor_erase_display(2);
         cursor_move(point_t{static_cast<uint16_t>(size.y + 1), 1});
-        for (uint16_t i = 0; i < size.x; i++) {
-            std::cout << "-";
+
+        for (i = 0; i < size.x; i++) {
+            std::cout << info_frame_character;
         }
-        std::cout << std::endl << std::endl << std::endl;
-        for (uint16_t i = 0; i < size.x; i++) {
-            std::cout << "-";
+        for (i = 0; i <= size_info_line; i++) {
+            std::cout << std::endl;
         }
+        for (uint16_t i = 0; i < size.x; i++) {
+            std::cout << info_frame_character;
+        }
+
         std::cout << std::endl;
-        std::cout << ">> ";
+        std::cout << input_start_string;
         cursor_show();
     }
 
@@ -140,7 +150,7 @@ class View {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
         cursor_move_input();
         cursor_erase_line(0);
-        std::cout << ">> " << std::flush;
+        std::cout << input_start_string << std::flush;
     }
 
     point_t get_pos_cursor_user(void) { return user_cursor; }
@@ -221,17 +231,17 @@ class World {
     bool flag_stop = false;
     point_t world_cursor_position;
 
-
     void print_info(void) {
         std::cout << "Cursor[y,x]: '" << +world_cursor_position.y
                   << "," << +world_cursor_position.x << "'; ";
+        std::cout << "Step size[y,x]: '" << +view_step_size.y << ","
+                  << +view_step_size.x << "'; ";
+        std::cout << "Refresh rate: '" << +refresh_rate << "'; ";
+        std::cout << std::endl;
         std::cout << "Cell symbol[alive, dead, "
                      "border]: '"
                   << cell_alive << "," << cell_dead << ","
                   << cell_border << "'; ";
-        std::cout << "Refresh rate: '" << +refresh_rate << "'; ";
-        std::cout << "Step size[y,x]: '" << +view_step_size.y << ","
-                  << +view_step_size.x << "'; ";
         std::cout << std::endl;
         std::cout << "Cells alive[world,view]: '"
                   << +world_alive_counter << ","
@@ -292,7 +302,7 @@ class World {
     void points_health_check(void) {
         static const uint16_t limit_y = world_size.y - 1;
         static const uint16_t limit_x = world_size.x - 1;
-        point_t i = {};
+        point_t i;
         cell_t *world_ptr;
 
         for (i.y = 1; i.y < limit_y; i.y++) {
@@ -317,9 +327,8 @@ class World {
     }
 
     void view_draw_border(void) {
-        point_t i = {};
+        point_t i;
         char border = (view_pos.y == 0) ? cell_border : ' ';
-
         for (i.y = i.x = 0; i.x < view_size.x; i.x++) {
             view.update(point_t{i.y, i.x}, border);
         }

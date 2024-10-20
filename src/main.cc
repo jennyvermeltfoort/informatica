@@ -287,7 +287,6 @@ class World {
 
     inline void view_update_bool(const point_t pos,
                                  const bool value) {
-        view.update(pos, (value) ? cell_alive : cell_dead);
     }
 
     inline void events_clear(void) { event_current = events; }
@@ -300,14 +299,14 @@ class World {
     }
 
     void points_health_check(void) {
-        static const uint16_t limit_y = world_size.y - 1;
-        static const uint16_t limit_x = world_size.x - 1;
-        point_t i;
-        cell_t *world_ptr;
+        static const uint16_t limit_y = world_size.y - 2;
+        static const uint16_t limit_x = world_size.x - 2;
+        uint16_t x;
+        uint16_t y;
+        cell_t *world_ptr = &world[1][1];
 
-        for (i.y = 1; i.y < limit_y; i.y++) {
-            world_ptr = &world[i.y][1];
-            for (i.x = 1; i.x < limit_x; i.x++) {
+        for (y = limit_y; y > 0 ; y--) {
+            for (x = limit_x; x > 0; x--) {
                 if (((world_ptr->value) &&
                      (world_ptr->neighbour_count > 3 ||
                       world_ptr->neighbour_count < 2)) ||
@@ -317,6 +316,7 @@ class World {
                 }
                 world_ptr++;
             }
+            world_ptr += 2; // skip const dead border on right on y and left on y+1
         }
     }
 
@@ -353,24 +353,21 @@ class World {
     }
 
     void view_draw_world(void) {
-        point_t i = {};
-        uint16_t y = view_pos.y + 1;
-        uint16_t x = view_pos.x + 1;
-        uint16_t limit_y = view_pos.y + view_size.y - 1;
-        uint16_t limit_x = view_pos.x + view_size.x - 1;
-        cell_t *world_ptr;
+        const uint16_t limit_y = view_size.y - 1;
+        const uint16_t limit_x = view_size.x - 1;
+        cell_t *world_ptr = &world[view_pos.y + 1][view_pos.x + 1];
+        uint16_t y;
+        uint16_t x;
+        const uint16_t a = world_size.x - view_size.x + 2; //remove multiplication operation from wrold[x][y] select by addition of a to ptr.
 
         view_alive_counter = 0;
-        for (i.y = y; i.y < limit_y; i.y++) {
-            world_ptr = &world[i.y][x];
-            for (i.x = x; i.x < limit_x; i.x++) {
+        for (y = 1; y < limit_y; y++) {
+            for (x = 1; x < limit_x; x++) {
                 view_alive_counter += world_ptr->value;
-                view_update_bool(
-                    point_t{static_cast<uint16_t>(i.y - view_pos.y),
-                            static_cast<uint16_t>(i.x - view_pos.x)},
-                    world_ptr->value);
+                view.update(point_t{y,x}, (world_ptr->value) ? cell_alive : cell_dead);
                 world_ptr++;
             }
+            world_ptr += a;
         }
     }
 

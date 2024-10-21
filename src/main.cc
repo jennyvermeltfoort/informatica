@@ -32,24 +32,17 @@ typedef struct CELL_T {
     uint8_t neighbour_count : 4;
     bool value;
 } cell_t;
-typedef cell_t world_storage_t[WORLD_SIZE_Y][WORLD_SIZE_X];
 #pragma pack()
+typedef cell_t world_storage_t[WORLD_SIZE_Y][WORLD_SIZE_X];
 
 typedef struct POINT_T {
     uint16_t y;
     uint16_t x;
 } point_t;
 
-const uint8_t ANSCII_SYMBOL_START = 33;
-const uint8_t ANSCII_SYMBOL_END = 126;
-const uint8_t ANSCII_NUMBER_0 = 48;
-const uint8_t ANSCII_NUMBER_9 = 57;
-const uint8_t ANSCII_NUMBER_MASK = 0XF;
-
-class World;
-class View;
-
 inline bool anscii_is_int(uint8_t c) {
+    const uint8_t ANSCII_NUMBER_0 = 48;
+    const uint8_t ANSCII_NUMBER_9 = 57;
     return (c >= ANSCII_NUMBER_0 && c <= ANSCII_NUMBER_9);
 }
 inline bool anscii_is_whitespace(uint8_t c) {
@@ -57,6 +50,8 @@ inline bool anscii_is_whitespace(uint8_t c) {
 }
 
 inline bool anscii_is_symbol(uint8_t c) {
+    const uint8_t ANSCII_SYMBOL_START = 33;
+    const uint8_t ANSCII_SYMBOL_END = 126;
     return (c >= ANSCII_SYMBOL_START && c <= ANSCII_SYMBOL_END);
 }
 
@@ -172,18 +167,17 @@ class View {
 
     void refresh_view(void) {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
-        uint8_t i_x;
-        uint8_t i_y;
-        char *view_ptr ;
+        uint16_t x;
+        uint16_t y;
+        char *view_ptr = &view[0][0];
 
         cursor_save();
         cursor_move_end();
         cursor_erase_display(1);
         cursor_move_start();
 
-        for (i_y = 0; i_y < size.y ; i_y++) {
-            view_ptr = &view[i_y][0];
-            for (i_x = 0; i_x < size.x; i_x++) {
+        for (y = size.y; y > 0; y--) {
+            for (x = size.x; x > 0; x--) {
                 std::cout << *view_ptr++;
             }
             std::cout << std::endl;
@@ -191,7 +185,7 @@ class View {
 
         cursor_move(
             point_t{static_cast<uint16_t>(user_cursor.y + 1),
-                    static_cast<uint16_t>(user_cursor.x + 1)});
+                    static_cast<uint16_t>(user_cursor.x + 1)}); //terminal cursor starts at 1,1.
         std::cout << "\b\033[105;31m"
                   << view[user_cursor.y][user_cursor.x]
                   << "\033[39;49m";
@@ -211,7 +205,7 @@ class World {
 
     world_storage_t world = {};
     const point_t world_size = {WORLD_SIZE_Y, WORLD_SIZE_X};
-    point_t world_size_life = {WORLD_SIZE_Y - 2, WORLD_SIZE_X - 2};
+    point_t world_size_life = {WORLD_SIZE_Y - 2, WORLD_SIZE_X - 2}; // world has dead at x or y = 0 and x or y is world_size.
     point_t world_start_pos = point_t{1, 1};
 
     cell_t **events = new cell_t *[WORLD_SIZE_X * WORLD_SIZE_Y]; // allocate to heap instead of stack.
@@ -251,6 +245,9 @@ class World {
                   << +infest_random_world_cell_default << "'; ";
     }
 
+    /* Calculates neighbours for cell.
+    * 
+    */
     void point_set_value(cell_t * cell, const bool value) {
         int8_t increment_value = (value) ? 1 : -1;
         world_alive_counter += increment_value;
@@ -264,10 +261,12 @@ class World {
         (cell+1)->neighbour_count +=increment_value;
         cell->value = value;
     }
+
     void set_cell_character(char &cell, const char c) {
         if (anscii_is_symbol(c) || c == ' ') {
             cell = c;
             view_refresh_world();
+            view_draw_border();
             view.refresh_info();
         }
     }
@@ -285,10 +284,6 @@ class World {
         };
     }
 
-    inline void view_update_bool(const point_t pos,
-                                 const bool value) {
-    }
-
     inline void events_clear(void) { event_current = events; }
     inline void event_add(cell_t *e) { *event_current++ = e; }
     void events_process(void) {
@@ -303,7 +298,7 @@ class World {
         static const uint16_t limit_x = world_size.x - 2;
         uint16_t x;
         uint16_t y;
-        cell_t *world_ptr = &world[1][1];
+        cell_t *world_ptr = &world[1][1]; // world starts at 1,1.
 
         for (y = limit_y; y > 0 ; y--) {
             for (x = limit_x; x > 0; x--) {
@@ -316,7 +311,7 @@ class World {
                 }
                 world_ptr++;
             }
-            world_ptr += 2; // skip const dead border on right on y and left on y+1
+            world_ptr += 2; // skip border right on y and left on y+1
         }
     }
 
@@ -617,7 +612,7 @@ class World {
         while (!flag_stop) {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(refresh_rate));
-            fill(world_start_pos, world_size_life);
+            //fill(world_start_pos, world_size_life);
 #ifdef TIMED
             auto strt = std::chrono::high_resolution_clock::now();
 #endif
@@ -641,6 +636,7 @@ class World {
 };
 
 void input_get_int(uint32_t **arr) {
+    const uint8_t ANSCII_NUMBER_MASK = 0XF;
     char c;
     uint32_t number = 0;
 

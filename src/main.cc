@@ -567,9 +567,9 @@ class World {
             };
             point_set_value(&world[p.y][p.x], !world[p.y][p.x].value);
         }
+
         view_refresh_world();
     }
-
     void infest_random_view(uint32_t cells) {
         infest_random(
             view_pos, view_size,

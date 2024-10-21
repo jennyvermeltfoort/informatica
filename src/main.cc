@@ -1,7 +1,7 @@
 //
-#define TIMED = 1;
+#define _TIMED 0
 
-#ifdef TIMED
+#if _TIMED == 1
 #include <chrono>
 #endif
 #include <cstdlib>
@@ -230,17 +230,17 @@ class World {
                   << "," << +world_cursor_position.x << "'; ";
         std::cout << "Step size[y,x]: '" << +view_step_size.y << ","
                   << +view_step_size.x << "'; ";
-        std::cout << "Refresh rate: '" << +refresh_rate << "'; ";
+        std::cout << "Refresh rate: '" << +refresh_rate << "'s; ";
         std::cout << std::endl;
         std::cout << "Cell symbol[alive, dead, "
                      "border]: '"
                   << cell_alive << "," << cell_dead << ","
                   << cell_border << "'; ";
-        std::cout << std::endl;
         std::cout << "Cells alive[world,view]: '"
                   << +world_alive_counter << ","
                   << +view_alive_counter << "'; ";
-        std::cout << "Default generation count[world,view]: '"
+        std::cout << std::endl;
+        std::cout << "Default random infest cell count[view,world]: '"
                   << +infest_random_view_cell_default << ","
                   << +infest_random_world_cell_default << "'; ";
     }
@@ -613,13 +613,13 @@ class World {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(refresh_rate));
             //fill(world_start_pos, world_size_life);
-#ifdef TIMED
+#if _TIMED == 1
             auto strt = std::chrono::high_resolution_clock::now();
 #endif
             world_generate();
             view_refresh_world();
             view.refresh_info();
-#ifdef TIMED
+#if _TIMED == 1
             auto stp = std::chrono::high_resolution_clock::now();
             auto duration =
                 std::chrono::duration_cast<std::chrono::microseconds>(

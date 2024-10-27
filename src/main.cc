@@ -26,14 +26,7 @@ const uint16_t VIEW_SIZE_Y = 20;
 const uint16_t VIEW_SIZE_X = 100;
 
 typedef char view_storage_t[VIEW_SIZE_Y][VIEW_SIZE_X];
-
-#pragma pack(1)
-typedef struct CELL_T {
-    uint8_t neighbour_count : 4;
-    bool value;
-} cell_t;
-#pragma pack()
-typedef cell_t world_storage_t[WORLD_SIZE_Y][WORLD_SIZE_X];
+typedef bool world_storage_t[WORLD_SIZE_Y][WORLD_SIZE_X];
 
 typedef struct POINT_T {
     uint16_t y;
@@ -122,7 +115,7 @@ class View {
         for (i = 0; i <= size_info_line; i++) {
             std::cout << std::endl;
         }
-        for (uint16_t i = 0; i < size.x; i++) {
+        for (i = 0; i < size.x; i++) {
             std::cout << info_frame_character;
         }
 
@@ -213,10 +206,10 @@ class World {
                             // is world_size.
     point_t world_start_pos = point_t{1, 1};
 
-    cell_t **events = new cell_t
-        *[WORLD_SIZE_X *
-          WORLD_SIZE_Y];  // allocate to heap instead of stack.
-    cell_t **event_current = events;
+    bool **events =
+        new bool *[WORLD_SIZE_X * WORLD_SIZE_Y];  // allocate to heap
+                                                  // instead of stack.
+    bool **event_current = events;
 
     View view;
     const point_t view_size = view.get_size();
@@ -230,7 +223,11 @@ class World {
     uint32_t world_alive_counter = 0;
     uint32_t view_alive_counter = 0;
     bool flag_stop = false;
-    point_t world_cursor_position;
+    point_t world_cursor_position = {
+        static_cast<uint16_t>(view_pos.y + get_pos_cursor_view().y),
+        static_cast<uint16_t>(view_pos.x + get_pos_cursor_view().x),
+    };
+    ;
 
     void print_info(void) {
         std::cout << "Cursor[y,x]: '" << +world_cursor_position.y
@@ -255,18 +252,10 @@ class World {
     /* Calculates neighbours for cell.
      *
      */
-    void point_set_value(cell_t *cell, const bool value) {
+    void point_set_value(bool *cell, const bool value) {
         int8_t increment_value = (value) ? 1 : -1;
         world_alive_counter += increment_value;
-        cell_t *neighbour_top = cell - WORLD_SIZE_X - 1;
-        cell_t *neighbour_bottom = cell + WORLD_SIZE_X - 1;
-        for (uint8_t i = 0; i < 3; i++) {
-            neighbour_top++->neighbour_count += increment_value;
-            neighbour_bottom++->neighbour_count += increment_value;
-        }
-        (cell - 1)->neighbour_count += increment_value;
-        (cell + 1)->neighbour_count += increment_value;
-        cell->value = value;
+        *cell = value;
     }
 
     void set_cell_character(char &cell, const char c) {
@@ -292,28 +281,38 @@ class World {
     }
 
     inline void events_clear(void) { event_current = events; }
-    inline void event_add(cell_t *e) { *event_current++ = e; }
+    inline void event_add(bool *e) {
+        event_current++;
+        *event_current = e;
+    }
     void events_process(void) {
-        while (event_current-- != events) {
-            point_set_value(*event_current, !(*event_current)->value);
-        }
-        events_clear();
+        while (event_current != events) {
+            point_set_value(*event_current, !(*event_current));
+            event_current--;
+        };
     }
 
     void points_health_check(void) {
         static const uint16_t limit_y = world_size.y - 2;
         static const uint16_t limit_x = world_size.x - 2;
+        bool *world_ptr = &world[1][1];  // world starts at 1,1.
+        uint8_t count;
         uint16_t x;
         uint16_t y;
-        cell_t *world_ptr = &world[1][1];  // world starts at 1,1.
 
         for (y = limit_y; y > 0; y--) {
             for (x = limit_x; x > 0; x--) {
-                if (((world_ptr->value) &&
-                     (world_ptr->neighbour_count > 3 ||
-                      world_ptr->neighbour_count < 2)) ||
-                    (!(world_ptr->value) &&
-                     world_ptr->neighbour_count == 3)) {
+                count = (*(world_ptr - WORLD_SIZE_X - 1) +
+                         *(world_ptr - WORLD_SIZE_X)) +
+                        (*(world_ptr - WORLD_SIZE_X + 1) +
+                         *(world_ptr - 1)) +
+                        (*(world_ptr + 1) +
+                         *(world_ptr + WORLD_SIZE_X - 1)) +
+                        (*(world_ptr + WORLD_SIZE_X) +
+                         *(world_ptr + WORLD_SIZE_X + 1));
+
+                if ((*world_ptr && count != 2 && count != 3) ||
+                    (!*world_ptr && count == 3)) {
                     event_add(world_ptr);
                 }
                 world_ptr++;
@@ -357,19 +356,19 @@ class World {
     void view_draw_world(void) {
         const uint16_t limit_y = view_size.y - 1;
         const uint16_t limit_x = view_size.x - 1;
-        cell_t *world_ptr = &world[view_pos.y + 1][view_pos.x + 1];
+        bool *world_ptr = &world[view_pos.y + 1][view_pos.x + 1];
         uint16_t y;
         uint16_t x;
         const uint16_t a =
             world_size.x - view_size.x +
-            2;  // remove multiplication operation from wrold[x][y]
+            2;  // remove multiplication operation from world[x][y]
                 // select by addition of a to ptr.
 
         view_alive_counter = 0;
         for (y = 1; y < limit_y; y++) {
             for (x = 1; x < limit_x; x++) {
-                view_alive_counter += world_ptr->value;
-                view.update(point_t{y, x}, (world_ptr->value)
+                view_alive_counter += *world_ptr;
+                view.update(point_t{y, x}, (*world_ptr == true)
                                                ? cell_alive
                                                : cell_dead);
                 world_ptr++;
@@ -385,18 +384,18 @@ class World {
 
     void clear(const point_t pos, const point_t size) {
         const std::lock_guard<std::mutex> lock(mutex_world_update);
-        point_t i = {};
         point_t p = transform_pos_view_boundaries(pos);
-        cell_t *world_ptr;
         uint16_t limit_y = p.y + size.y;
         uint16_t limit_x = p.x + size.x;
+        point_t i = {};
+        bool *world_ptr;
 
         events_clear();
 
         for (i.y = p.y; i.y < limit_y; i.y++) {
             world_ptr = &world[i.y][p.x];
             for (i.x = p.x; i.x < limit_x; i.x++) {
-                if (world_ptr->value) {
+                if (*world_ptr) {
                     point_set_value(world_ptr, false);
                 }
                 world_ptr++;
@@ -410,7 +409,7 @@ class World {
         const std::lock_guard<std::mutex> lock(mutex_world_update);
         point_t i = {};
         point_t p = transform_pos_view_boundaries(pos);
-        cell_t *world_ptr;
+        bool *world_ptr;
         uint16_t limit_y = p.y + size.y;
         uint16_t limit_x = p.x + size.x;
 
@@ -577,7 +576,7 @@ class World {
                 static_cast<uint16_t>(rand() % size.y + pos.y),
                 static_cast<uint16_t>(rand() % size.x + pos.x),
             };
-            point_set_value(&world[p.y][p.x], !world[p.y][p.x].value);
+            point_set_value(&world[p.y][p.x], !world[p.y][p.x]);
         }
 
         view_refresh_world();
@@ -625,7 +624,7 @@ class World {
         while (!flag_stop) {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(refresh_rate));
-            fill(world_start_pos, world_size_life);
+            // fill(world_start_pos, world_size_life);
 #if _TIMED == 1
             auto strt = std::chrono::high_resolution_clock::now();
 #endif

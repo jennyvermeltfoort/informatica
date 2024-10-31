@@ -8,6 +8,7 @@
 #include <ctime>
 #include <functional>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <mutex>
 #include <thread>
@@ -22,7 +23,7 @@ const uint16_t DEFAULT_REFRESH_RATE_INTRO = 100;
 const uint16_t INTRO_DURATION_S = 3;
 const uint16_t WORLD_SIZE_Y = 1000;
 const uint16_t WORLD_SIZE_X = 1000;
-const uint16_t VIEW_SIZE_Y = 20;
+const uint16_t VIEW_SIZE_Y = 30;
 const uint16_t VIEW_SIZE_X = 100;
 
 typedef char view_storage_t[VIEW_SIZE_Y][VIEW_SIZE_X];
@@ -33,19 +34,19 @@ typedef struct POINT_T {
     uint16_t x;
 } point_t;
 
-inline bool anscii_is_int(uint8_t c) {
-    const uint8_t ANSCII_NUMBER_0 = 48;
-    const uint8_t ANSCII_NUMBER_9 = 57;
-    return (c >= ANSCII_NUMBER_0 && c <= ANSCII_NUMBER_9);
+inline bool ascii_is_int(uint8_t c) {
+    const uint8_t ASCII_NUMBER_0 = 48;
+    const uint8_t ASCII_NUMBER_9 = 57;
+    return (c >= ASCII_NUMBER_0 && c <= ASCII_NUMBER_9);
 }
-inline bool anscii_is_whitespace(uint8_t c) {
+inline bool ascii_is_whitespace(uint8_t c) {
     return (c == ' ' || c == '\t');
 }
 
-inline bool anscii_is_symbol(uint8_t c) {
-    const uint8_t ANSCII_SYMBOL_START = 33;
-    const uint8_t ANSCII_SYMBOL_END = 126;
-    return (c >= ANSCII_SYMBOL_START && c <= ANSCII_SYMBOL_END);
+inline bool ascii_is_symbol(uint8_t c) {
+    const uint8_t ASCII_SYMBOL_START = 33;
+    const uint8_t ASCII_SYMBOL_END = 126;
+    return (c >= ASCII_SYMBOL_START && c <= ASCII_SYMBOL_END);
 }
 
 class View {
@@ -180,7 +181,7 @@ class View {
             point_t{static_cast<uint16_t>(user_cursor.y + 1),
                     static_cast<uint16_t>(
                         user_cursor.x +
-                        1)});  // terminal cursor starts at 1,1.
+                        2)});  // terminal cursor starts at 1,1.
         std::cout << "\b\033[105;31m"
                   << view[user_cursor.y][user_cursor.x]
                   << "\033[39;49m";
@@ -202,8 +203,7 @@ class World {
     const point_t world_size = {WORLD_SIZE_Y, WORLD_SIZE_X};
     point_t world_size_life = {
         WORLD_SIZE_Y - 2,
-        WORLD_SIZE_X - 2};  // world has dead at x or y = 0 and x or y
-                            // is world_size.
+        WORLD_SIZE_X - 2};  // world has dead cells at borders.
     point_t world_start_pos = point_t{1, 1};
 
     bool **events =
@@ -259,7 +259,7 @@ class World {
     }
 
     void set_cell_character(char &cell, const char c) {
-        if (anscii_is_symbol(c) || c == ' ') {
+        if (ascii_is_symbol(c) || c == ' ') {
             cell = c;
             view_refresh_world();
             view_draw_border();
@@ -309,7 +309,7 @@ class World {
                         (*(world_ptr + 1) +
                          *(world_ptr + WORLD_SIZE_X - 1)) +
                         (*(world_ptr + WORLD_SIZE_X) +
-                         *(world_ptr + WORLD_SIZE_X + 1));
+                         *(world_ptr + WORLD_SIZE_X + 1)); // keep brackets to allow ??? todo name
 
                 if ((*world_ptr == true && count != 2 && count != 3) ||
                     (*world_ptr == false && count == 3)) {
@@ -362,7 +362,7 @@ class World {
         const uint16_t a =
             world_size.x - view_size.x +
             2;  // remove multiplication operation from world[x][y]
-                // select by addition of a to ptr.
+                // by incrementing the pointer by a.
 
         view_alive_counter = 0;
         for (y = 1; y < limit_y; y++) {
@@ -516,17 +516,26 @@ class World {
     }
     void set_cursor_pos(const point_t pos) {
         view.set_user_cursor_pos(pos);
-        view.refresh_info();
         world_cursor_position = {
             static_cast<uint16_t>(view_pos.y +
                                   get_pos_cursor_view().y),
             static_cast<uint16_t>(view_pos.x +
                                   get_pos_cursor_view().x),
         };
+        view.refresh_info();
+        view.refresh_view();
     }
 
     point_t get_pos_cursor_view(void) {
         return view.get_pos_cursor_user();
+    }
+    point_t get_pos_cursor_world(void) {
+        return {
+            static_cast<uint16_t>(view_pos.y +
+                                  get_pos_cursor_view().y),
+            static_cast<uint16_t>(view_pos.x +
+                                  get_pos_cursor_view().x),
+        };
     }
 
     void view_move(const point_t pos) {
@@ -567,6 +576,24 @@ class World {
         });
     }
 
+    bool point_in_world_life(point_t p) {
+        return (p.x > 0 && p.x < world_size.x && p.y > 0 && p.y < world_size.y);
+    }
+
+    void set_point_value(point_t p, bool value) {
+        if (point_in_world_life(p)){
+            point_set_value(&world[p.y][p.x], value);
+        }
+    }
+
+    bool get_point_value(point_t p, bool &value) {
+        if (point_in_world_life(p)){
+            value = world[p.y][p.x];
+            return true;
+        }
+        return false;
+    }
+
     void infest_random(const point_t pos, const point_t size,
                        const uint32_t cells) {
         const std::lock_guard<std::mutex> lock(mutex_world_update);
@@ -599,9 +626,8 @@ class World {
 
     void toggle_cursor_value(void) {
         const std::lock_guard<std::mutex> lock(mutex_world_update);
-        event_add(
-            &world[world_cursor_position.y][world_cursor_position.x]);
-        events_process();
+        point_set_value(
+            &world[world_cursor_position.y][world_cursor_position.x], !world[world_cursor_position.y][world_cursor_position.x]);
         view_refresh_world();
     }
 
@@ -616,9 +642,6 @@ class World {
         view.refresh_info();
         view_draw_border();
         view_refresh_world();
-        view.set_user_cursor_pos(
-            {static_cast<uint16_t>(view_size.y / 2),
-             static_cast<uint16_t>(view_size.x / 2)});
     }
 
     void toggle_run_mode(void) {
@@ -633,6 +656,9 @@ class World {
     void run(void) {
         intro();
         clear_world();
+        view.set_user_cursor_pos(
+            {static_cast<uint16_t>(view_size.y / 2),
+             static_cast<uint16_t>(view_size.x / 2)});
         reset_view();
 
         while (!flag_stop) {
@@ -649,6 +675,7 @@ class World {
                     world_generate();
                     view_refresh_world();
                     view.refresh_info();
+                    view.refresh_input();
 #if _TIMED == 1
             auto stp = std::chrono::high_resolution_clock::now();
             auto duration =
@@ -659,11 +686,8 @@ class World {
                       << duration.count() << " microseconds"
                       << std::endl;
 #endif
-                    view.refresh_input();
                     
                 }
-
-                
         }
     }
 
@@ -671,7 +695,7 @@ class World {
 };
 
 void input_get_int(uint32_t **arr) {
-    const uint8_t ANSCII_NUMBER_MASK = 0XF;
+    const uint8_t ASCII_NUMBER_MASK = 0XF;
     char c;
     uint32_t number = 0;
 
@@ -681,12 +705,12 @@ void input_get_int(uint32_t **arr) {
 
     std::cin.get(c);
 
-    while (anscii_is_int(c) && !std::cin.eof()) {
+    while (ascii_is_int(c) && !std::cin.eof()) {
         if (number * 10 +
-                static_cast<uint16_t>(c & ANSCII_NUMBER_MASK) >
+                static_cast<uint16_t>(c & ASCII_NUMBER_MASK) >
             number) {
             number = number * 10 +
-                     static_cast<uint16_t>(c & ANSCII_NUMBER_MASK);
+                     static_cast<uint16_t>(c & ASCII_NUMBER_MASK);
         }
         std::cin.get(c);
     }
@@ -861,39 +885,78 @@ void cb_input_parameter(World &world) {
 }
 
 void cb_input_print_help(World &world) {
+    std::cout << "See the list below for all options, input is parsed after each <enter>." << std::endl;
+    std::cout << "Usage example: 'pca@\\n' sets the alive cell representation to '@'." << std::endl;
     std::cout << "<h> \t\t\t\t this help." << std::endl;
     std::cout << "<e> \t\t\t\t stop the programm." << std::endl;
-    std::cout << "<g> \t\t\t\t generations sub-menu." << std::endl;
+    std::cout << "<g><a/s> \t\t\t generations sub-menu." << std::endl;
     std::cout << "\t <a> \t\t\t toggle auto run mode." << std::endl;
     std::cout << "\t <s>[num] \t\t when in run_mode = '0', perform [num] amount of generations." << std::endl;
     std::cout << "<r> \t\t\t\t reset the view." << std::endl;
-    std::cout << "<m>[num1];[num2] \t\t move the view to coordinates y = [num1], x = [num2]." << std::endl;
+    std::cout << "<m>[num1];[num2] \t\t move the view to coordinates y = [num1], x = [num2], example: 'm10;10'." << std::endl;
     std::cout << "<8,6,4,5> \t\t\t move the view left(4), right(6), top(8), bottom(5) by configured step size, see <p><v>." << std::endl;
     std::cout << "<w,a,s,d> \t\t\t move the the cursor left(a), right(d), top(w), bottom(s)." << std::endl;
     std::cout << "<t> \t\t\t\t toggle the cell highlighted by the cursor (pink)." << std::endl;
-    std::cout << "<i> \t\t\t\t infest sub-menu." << std::endl;
+    std::cout << "<i><v/v[num]/w/w[num]> \t\t infest sub-menu." << std::endl;
     std::cout << "\t <v> \t\t\t randomly infest the view with default infest cell count, see <p><i><v>." << std::endl;
     std::cout << "\t <v>[num] \t\t randomly infest the view with [num] amount of cells." << std::endl;
     std::cout << "\t <w> \t\t\t randomly infest the world with default infest cell count, see <p><i><w>." << std::endl;
     std::cout << "\t <v>[num] \t\t randomly infest the world with [num] amount of cells." << std::endl;
-    std::cout << "<p> \t\t\t\t parameter sub-menu." << std::endl;
-    std::cout << "\t <c> \t\t\t cell sub-menu." << std::endl;
-    std::cout << "\t\t <a>[char] \t set alive cell representation to [char]." << std::endl;
+    std::cout << "<p><c/i/v/r> \t\t\t parameter sub-menu." << std::endl;
+    std::cout << "\t <c><a/d/b> \t\t cell sub-menu." << std::endl;
+    std::cout << "\t\t <a>[char] \t set alive cell representation to [char], example: 'pca@'." << std::endl;
     std::cout << "\t\t <d>[char] \t set dead cell representation to [char]." << std::endl;
     std::cout << "\t\t <b>[char] \t set border cell representation to [char]." << std::endl;
-    std::cout << "\t <i> \t\t\t infest sub-menu." << std::endl;
-    std::cout << "\t\t <v> \t\t set default infest cell count, view, see <i><v>." << std::endl;
-    std::cout << "\t\t <w> \t\t set default infest cell count, world, see <i><w>." << std::endl;
-    std::cout << "\t <v> \t\t\t view sub-menu" << std::endl;
+    std::cout << "\t <i><v/w> \t\t infest sub-menu." << std::endl;
+    std::cout << "\t\t <v>[num] \t\t set default infest cell count to [num], view, see <i><v>." << std::endl;
+    std::cout << "\t\t <w>[num] \t\t set default infest cell count to [num], world, see <i><w>." << std::endl;
+    std::cout << "\t <v><y/x> \t\t view sub-menu" << std::endl;
     std::cout << "\t\t <y>[num] \t set view move step size, y axis, see <8,6,4,5>." << std::endl;
     std::cout << "\t\t <x>[num] \t set view move step size, x axis, see <8,6,4,5>." << std::endl;
-    std::cout << "\t <r>[num] \t\t set the refresh rate to [num] milliseconds." << std::endl;
+    std::cout << "\t <r>[num] \t\t set the refresh rate to [num] milliseconds, example 'pr100'." << std::endl;
 }
+
+void cb_input_glider_gun(World &world) {
+    std::fstream fs;
+    char c;
+    fs.open("glidergun.txt", std::fstream::in);
+    point_t p = world.get_pos_cursor_world();
+    bool value;
+
+    if (!fs.is_open()) {
+        std::cout
+            << "Failed to open ./glidergun.txt, make sure it exists! "
+             << std::endl;
+        return;
+    }
+
+    do {
+        c = fs.get();
+        if (!world.get_point_value(p, value)) {
+            break;
+        }
+
+        if (c == ' ' && value == true) {
+            world.set_point_value(p, false);}
+        else if (c == 'x' && value == false) {
+            world.set_point_value(p, true);
+        }
+        else if(c == '\n') {
+            p.y++;
+            p.x = world.get_pos_cursor_world().x - 1;
+        }
+        p.x++;
+    } while (!fs.eof());
+
+    world.reset_view();
+}
+
 
 void loop_input(World &world) {
     char c;
     std::map<char, std::function<void(World &)>> map_callback{
         {'h', cb_input_print_help},
+        {'u', cb_input_glider_gun},
         {'g', cb_input_generations},
         {'e', cb_input_stop},
         {'r', cb_input_reset_view},

@@ -287,7 +287,7 @@ class World {
     }
     void events_process(void) {
         while (event_current != events) {
-            point_set_value(*event_current, !(*event_current));
+            point_set_value(*event_current, !(**event_current));
             event_current--;
         };
     }
@@ -311,8 +311,8 @@ class World {
                         (*(world_ptr + WORLD_SIZE_X) +
                          *(world_ptr + WORLD_SIZE_X + 1));
 
-                if ((*world_ptr && count != 2 && count != 3) ||
-                    (!*world_ptr && count == 3)) {
+                if ((*world_ptr == true && count != 2 && count != 3) ||
+                    (*world_ptr == false && count == 3)) {
                     event_add(world_ptr);
                 }
                 world_ptr++;

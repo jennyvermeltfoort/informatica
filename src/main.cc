@@ -181,7 +181,7 @@ class View {
             point_t{static_cast<uint16_t>(user_cursor.y + 1),
                     static_cast<uint16_t>(
                         user_cursor.x +
-                        2)});  // terminal cursor starts at 1,1.
+                        2)});  // terminal cursor starts at 1,1 and the next character is removed thus an additional x+1.
         std::cout << "\b\033[105;31m"
                   << view[user_cursor.y][user_cursor.x]
                   << "\033[39;49m";

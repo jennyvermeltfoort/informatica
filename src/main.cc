@@ -1,5 +1,5 @@
 //
-#define _TIMED 1
+#define _TIMED 0
 
 #if _TIMED == 1
 #include <chrono>
@@ -227,7 +227,8 @@ class World {
         static_cast<uint16_t>(view_pos.y + get_pos_cursor_view().y),
         static_cast<uint16_t>(view_pos.x + get_pos_cursor_view().x),
     };
-    ;
+    uint32_t generations = 0;
+    bool run_auto = 0;
 
     void print_info(void) {
         std::cout << "Cursor[y,x]: '" << +world_cursor_position.y
@@ -247,14 +248,13 @@ class World {
         std::cout << "Default random infest cell count[view,world]: '"
                   << +infest_random_view_cell_default << ","
                   << +infest_random_world_cell_default << "'; ";
+        std::cout << "Run mode, generations: '"
+                  << +run_auto << ","
+                  << +generations << "'; ";
     }
 
-    /* Calculates neighbours for cell.
-     *
-     */
     void point_set_value(bool *cell, const bool value) {
-        int8_t increment_value = (value) ? 1 : -1;
-        world_alive_counter += increment_value;
+        world_alive_counter += (value) ? 1 : -1;
         *cell = value;
     }
 
@@ -404,7 +404,7 @@ class World {
 
         view_refresh_world();
     }
-
+#if _TIMED == 1
     void fill(const point_t pos, const point_t size) {
         const std::lock_guard<std::mutex> lock(mutex_world_update);
         point_t i = {};
@@ -425,6 +425,7 @@ class World {
 
         view_refresh_world();
     }
+#endif
 
     void intro(void) {
         infest_random_view(1000);
@@ -478,6 +479,10 @@ class World {
    public:
     World() {
         view.set_print_callback(std::bind(&World::print_info, this));
+    }
+
+    ~World() {
+        delete events;
     }
 
     void view_refresh_input(void) { view.refresh_input(); }
@@ -616,6 +621,15 @@ class World {
              static_cast<uint16_t>(view_size.x / 2)});
     }
 
+    void toggle_run_mode(void) {
+        generations = 1;
+        run_auto = !run_auto;
+    }
+
+    void set_generations(uint32_t gens) {
+        generations = gens;
+    }
+
     void run(void) {
         intro();
         clear_world();
@@ -624,13 +638,17 @@ class World {
         while (!flag_stop) {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(refresh_rate));
-            // fill(world_start_pos, world_size_life);
 #if _TIMED == 1
+            fill(world_start_pos, world_size_life);
             auto strt = std::chrono::high_resolution_clock::now();
 #endif
-            world_generate();
-            view_refresh_world();
-            view.refresh_info();
+                if (generations > 0) {
+                    if (run_auto == false) {
+                        generations--;
+                    }
+                    world_generate();
+                    view_refresh_world();
+                    view.refresh_info();
 #if _TIMED == 1
             auto stp = std::chrono::high_resolution_clock::now();
             auto duration =
@@ -641,7 +659,11 @@ class World {
                       << duration.count() << " microseconds"
                       << std::endl;
 #endif
-            view.refresh_input();
+                    view.refresh_input();
+                    
+                }
+
+                
         }
     }
 
@@ -710,6 +732,20 @@ void cb_input_move_view_top(World &world) { world.view_move_top(); }
 void cb_input_move_view_bottom(World &world) {
     world.view_move_bottom();
 }
+
+void cb_input_generations(World &world) {
+    char c = std::cin.get();
+    uint32_t generations = 0;
+    uint32_t *arr[2] = {&generations, NULL};
+
+    if (c == 'a') {
+        world.toggle_run_mode();
+    } else if (c == 's') {
+        input_get_int(arr);
+        world.set_generations(generations);
+    }
+}
+
 
 void cb_input_stop(World &world) { world.stop(); }
 void cb_input_reset_view(World &world) { world.reset_view(); }
@@ -824,9 +860,41 @@ void cb_input_parameter(World &world) {
     }
 }
 
+void cb_input_print_help(World &world) {
+    std::cout << "<h> \t\t\t\t this help." << std::endl;
+    std::cout << "<e> \t\t\t\t stop the programm." << std::endl;
+    std::cout << "<g> \t\t\t\t generations sub-menu." << std::endl;
+    std::cout << "\t <a> \t\t\t toggle auto run mode." << std::endl;
+    std::cout << "\t <s>[num] \t\t when in run_mode = '0', perform [num] amount of generations." << std::endl;
+    std::cout << "<r> \t\t\t\t reset the view." << std::endl;
+    std::cout << "<m>[num1];[num2] \t\t move the view to coordinates y = [num1], x = [num2]." << std::endl;
+    std::cout << "<8,6,4,5> \t\t\t move the view left(4), right(6), top(8), bottom(5) by configured step size, see <p><v>." << std::endl;
+    std::cout << "<w,a,s,d> \t\t\t move the the cursor left(a), right(d), top(w), bottom(s)." << std::endl;
+    std::cout << "<t> \t\t\t\t toggle the cell highlighted by the cursor (pink)." << std::endl;
+    std::cout << "<i> \t\t\t\t infest sub-menu." << std::endl;
+    std::cout << "\t <v> \t\t\t randomly infest the view with default infest cell count, see <p><i><v>." << std::endl;
+    std::cout << "\t <v>[num] \t\t randomly infest the view with [num] amount of cells." << std::endl;
+    std::cout << "\t <w> \t\t\t randomly infest the world with default infest cell count, see <p><i><w>." << std::endl;
+    std::cout << "\t <v>[num] \t\t randomly infest the world with [num] amount of cells." << std::endl;
+    std::cout << "<p> \t\t\t\t parameter sub-menu." << std::endl;
+    std::cout << "\t <c> \t\t\t cell sub-menu." << std::endl;
+    std::cout << "\t\t <a>[char] \t set alive cell representation to [char]." << std::endl;
+    std::cout << "\t\t <d>[char] \t set dead cell representation to [char]." << std::endl;
+    std::cout << "\t\t <b>[char] \t set border cell representation to [char]." << std::endl;
+    std::cout << "\t <i> \t\t\t infest sub-menu." << std::endl;
+    std::cout << "\t\t <v> \t\t set default infest cell count, view, see <i><v>." << std::endl;
+    std::cout << "\t\t <w> \t\t set default infest cell count, world, see <i><w>." << std::endl;
+    std::cout << "\t <v> \t\t\t view sub-menu" << std::endl;
+    std::cout << "\t\t <y>[num] \t set view move step size, y axis, see <8,6,4,5>." << std::endl;
+    std::cout << "\t\t <x>[num] \t set view move step size, x axis, see <8,6,4,5>." << std::endl;
+    std::cout << "\t <r>[num] \t\t set the refresh rate to [num] milliseconds." << std::endl;
+}
+
 void loop_input(World &world) {
     char c;
     std::map<char, std::function<void(World &)>> map_callback{
+        {'h', cb_input_print_help},
+        {'g', cb_input_generations},
         {'e', cb_input_stop},
         {'r', cb_input_reset_view},
         {'m', cb_input_move_view},

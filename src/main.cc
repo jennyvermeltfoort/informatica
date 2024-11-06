@@ -6,9 +6,9 @@
 #endif
 #include <cstdlib>
 #include <ctime>
+#include <fstream>
 #include <functional>
 #include <iostream>
-#include <fstream>
 #include <map>
 #include <mutex>
 #include <thread>
@@ -23,11 +23,16 @@ const uint16_t DEFAULT_REFRESH_RATE_INTRO = 100;
 const uint16_t INTRO_DURATION_S = 3;
 const uint16_t WORLD_SIZE_Y = 1000;
 const uint16_t WORLD_SIZE_X = 1000;
-const uint16_t VIEW_SIZE_Y = 30;
-const uint16_t VIEW_SIZE_X = 100;
+const uint16_t DEFAULT_VIEW_SIZE_Y = 10;
+const uint16_t DEFAULT_VIEW_SIZE_X = 100;
 
-typedef char view_storage_t[VIEW_SIZE_Y][VIEW_SIZE_X];
-typedef bool world_storage_t[WORLD_SIZE_Y][WORLD_SIZE_X];
+#pragma pack(1)
+typedef struct CELL_T {
+    bool alive;
+    char value;
+} cell_t;
+#pragma pack()
+typedef cell_t world_storage_t[WORLD_SIZE_Y][WORLD_SIZE_X];
 
 typedef struct POINT_T {
     uint16_t y;
@@ -49,20 +54,26 @@ inline bool ascii_is_symbol(uint8_t c) {
     return (c >= ASCII_SYMBOL_START && c <= ASCII_SYMBOL_END);
 }
 
+typedef enum VIEW_MOVE_DIRECTION_T {
+    VIEW_MOVE_UP,
+    VIEW_MOVE_DOWN,
+    VIEW_MOVE_LEFT,
+    VIEW_MOVE_RIGHT,
+} view_move_direction_t;
+
 class View {
    private:
-    point_t size = {VIEW_SIZE_Y, VIEW_SIZE_X};
-    view_storage_t view = {};
+    const std::string input_start_string = ">> ";
+    point_t view_size;
+    cell_t *view_ptr;
+    uint32_t view_ptr_line_distance;
     std::mutex mutex_cursor;
-    point_t user_cursor = {VIEW_SIZE_Y + 1, VIEW_SIZE_X + 1};
+    point_t view_user_cursor;
     std::function<void(void)> cb_print_info;
     const uint8_t size_info_line = 3;
-    uint16_t line_input = size.y + size_info_line + 3;
-    uint16_t line_info = size.y + 2;
+    uint16_t line_input;
+    uint16_t line_info;
     bool flag_cb_print_info_set = false;
-
-    const char info_frame_character = '-';
-    const std::string input_start_string = ">> ";
 
     void cursor_move(const point_t point) {
         std::cout << "\033[" << +point.y << ";" << +point.x << "H"
@@ -71,7 +82,7 @@ class View {
     void cursor_hide(void) { std::cout << "\033[?25l" << std::flush; }
     void cursor_show(void) { std::cout << "\033[?25h" << std::flush; }
     void cursor_move_start(void) { cursor_move(point_t{0, 0}); }
-    void cursor_move_end(void) { cursor_move(size); }
+    void cursor_move_end(void) { cursor_move(view_size); }
     void cursor_move_input(void) {
         point_t p = {line_input, 1};
         cursor_move(p);
@@ -92,11 +103,25 @@ class View {
     void cursor_restore(void) { std::cout << "\033[u" << std::flush; }
 
    public:
-    View() {
+    View(cell_t *view, point_t size, uint32_t distance) {
+        set_view_parameters(view, size, distance);
+        view_user_cursor = {static_cast<uint16_t>(view_size.y + 1),
+                            static_cast<uint16_t>(view_size.x + 1)};
+        line_input = view_size.y + size_info_line + 3;
+        line_info = view_size.y + 2;
+
         cursor_erase_display(2);
         cursor_hide();
     }
     void reset(void) { draw_frame(); }
+    void set_view_parameters(cell_t *view, point_t size,
+                             uint32_t distance) {
+        view_ptr = view;
+        view_size = size;
+        view_ptr_line_distance =
+            distance;  // the distance from view_ptr at line (y,x) to
+                       // view_ptr at line (y+1,x)
+    }
 
     void set_print_callback(std::function<void(void)> cb) {
         cb_print_info = cb;
@@ -105,18 +130,20 @@ class View {
 
     void draw_frame(void) {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
+        const char info_frame_character = '-';
         uint16_t i;
 
         cursor_erase_display(2);
-        cursor_move(point_t{static_cast<uint16_t>(size.y + 1), 1});
+        cursor_move(
+            point_t{static_cast<uint16_t>(view_size.y + 1), 1});
 
-        for (i = 0; i < size.x; i++) {
+        for (i = 0; i < view_size.x; i++) {
             std::cout << info_frame_character;
         }
         for (i = 0; i <= size_info_line; i++) {
             std::cout << std::endl;
         }
-        for (i = 0; i < size.x; i++) {
+        for (i = 0; i < view_size.x; i++) {
             std::cout << info_frame_character;
         }
 
@@ -142,48 +169,50 @@ class View {
         std::cout << input_start_string << std::flush;
     }
 
-    point_t get_pos_cursor_user(void) { return user_cursor; }
+    point_t get_pos_cursor_user(void) { return view_user_cursor; }
 
     void set_user_cursor_pos(const point_t pos) {
-        user_cursor = {
-            static_cast<uint16_t>((pos.y > size.y - 1) ? size.y - 1
-                                                       : pos.y),
-            static_cast<uint16_t>((pos.x > size.x - 1) ? size.x - 1
-                                                       : pos.x),
+        view_user_cursor = {
+            static_cast<uint16_t>(
+                (pos.y > view_size.y - 1) ? view_size.y - 1 : pos.y),
+            static_cast<uint16_t>(
+                (pos.x > view_size.x - 1) ? view_size.x - 1 : pos.x),
         };
     }
 
-    point_t get_size(void) { return size; }
-
-    void update(const point_t pos, const char c) {
-        view[pos.y][pos.x] = c;
-    }
+    point_t get_size(void) { return view_size; }
 
     void refresh_view(void) {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
+        cell_t *ptr = view_ptr;
         uint16_t x;
         uint16_t y;
-        char *view_ptr = &view[0][0];
 
         cursor_save();
         cursor_move_end();
         cursor_erase_display(1);
         cursor_move_start();
 
-        for (y = size.y; y > 0; y--) {
-            for (x = size.x; x > 0; x--) {
-                std::cout << *view_ptr++;
+        for (y = view_size.y; y > 0; y--) {
+            for (x = view_size.x; x > 0; x--) {
+                std::cout << ptr->value;
+                ptr++;
             }
             std::cout << std::endl;
+            ptr += view_ptr_line_distance - view_size.x;
         }
 
-        cursor_move(
-            point_t{static_cast<uint16_t>(user_cursor.y + 1),
-                    static_cast<uint16_t>(
-                        user_cursor.x +
-                        2)});  // terminal cursor starts at 1,1 and the next character is removed thus an additional x+1.
+        cursor_move(point_t{
+            static_cast<uint16_t>(view_user_cursor.y + 1),
+            static_cast<uint16_t>(
+                view_user_cursor.x +
+                2)});  // terminal cursor starts at 1,1 and the next
+                       // character is removed thus an additional x+1.
         std::cout << "\b\033[105;31m"
-                  << view[user_cursor.y][user_cursor.x]
+                  << (view_ptr +
+                      view_ptr_line_distance * view_user_cursor.y +
+                      view_user_cursor.x)
+                         ->value
                   << "\033[39;49m";
 
         std::cout << std::flush;
@@ -206,18 +235,19 @@ class World {
         WORLD_SIZE_X - 2};  // world has dead cells at borders.
     point_t world_start_pos = point_t{1, 1};
 
-    bool **events =
-        new bool *[WORLD_SIZE_X * WORLD_SIZE_Y];  // allocate to heap
-                                                  // instead of stack.
-    bool **event_current = events;
+    cell_t **events = new cell_t
+        *[WORLD_SIZE_X * WORLD_SIZE_Y];  // allocate to heap
+                                         // instead of stack.
+    cell_t **event_current = events;
 
-    View view;
-    const point_t view_size = view.get_size();
+    point_t view_size = {DEFAULT_VIEW_SIZE_Y, DEFAULT_VIEW_SIZE_X};
     point_t view_step_size = {view_size.y, view_size.x};
     point_t view_pos = {
         static_cast<uint16_t>(world_size.y / 2 - view_size.y / 2),
         static_cast<uint16_t>(world_size.x / 2 - view_size.x / 2),
     };
+    View *view = new View(&world[view_pos.y][view_pos.x], view_size,
+                          world_size.x - 1);
     uint16_t refresh_rate = DEFAULT_REFRESH_RATE;
     std::mutex mutex_world_update;
     uint32_t world_alive_counter = 0;
@@ -227,8 +257,8 @@ class World {
         static_cast<uint16_t>(view_pos.y + get_pos_cursor_view().y),
         static_cast<uint16_t>(view_pos.x + get_pos_cursor_view().x),
     };
-    uint32_t generations = 0;
-    bool run_auto = 0;
+    uint32_t generations = 1;
+    bool run_auto = 1;
 
     void print_info(void) {
         std::cout << "Cursor[y,x]: '" << +world_cursor_position.y
@@ -248,46 +278,43 @@ class World {
         std::cout << "Default random infest cell count[view,world]: '"
                   << +infest_random_view_cell_default << ","
                   << +infest_random_world_cell_default << "'; ";
-        std::cout << "Run mode, generations: '"
-                  << +run_auto << ","
+        std::cout << "Run mode, generations: '" << +run_auto << ","
                   << +generations << "'; ";
     }
 
-    void point_set_value(bool *cell, const bool value) {
-        world_alive_counter += (value) ? 1 : -1;
-        *cell = value;
+    void point_set_value(cell_t *cell, const bool alive) {
+        world_alive_counter += (alive) ? 1 : -1;
+        cell->alive = alive;
+        cell->value = (alive) ? cell_alive : cell_dead;
     }
 
     void set_cell_character(char &cell, const char c) {
         if (ascii_is_symbol(c) || c == ' ') {
             cell = c;
-            view_refresh_world();
-            view_draw_border();
-            view.refresh_info();
+            view->refresh_view();
+            view->refresh_info();
         }
     }
 
-    point_t transform_pos_view_boundaries(const point_t pos) {
+    point_t limit_pos_to_world_size(const point_t pos) {
         return {
             (pos.y + view_size.y > world_size.y)
-                ? static_cast<uint16_t>(world_size.y - view_size.y +
-                                        1)
+                ? static_cast<uint16_t>(world_size.y - view_size.y)
                 : pos.y,
             (pos.x + view_size.x > world_size.x)
-                ? static_cast<uint16_t>(world_size.x - view_size.x +
-                                        1)
+                ? static_cast<uint16_t>(world_size.x - view_size.x)
                 : pos.x,
         };
     }
 
     inline void events_clear(void) { event_current = events; }
-    inline void event_add(bool *e) {
+    inline void event_add(cell_t *e) {
         event_current++;
         *event_current = e;
     }
     void events_process(void) {
         while (event_current != events) {
-            point_set_value(*event_current, !(**event_current));
+            point_set_value(*event_current, !(*event_current)->alive);
             event_current--;
         };
     }
@@ -295,24 +322,26 @@ class World {
     void points_health_check(void) {
         static const uint16_t limit_y = world_size.y - 2;
         static const uint16_t limit_x = world_size.x - 2;
-        bool *world_ptr = &world[1][1];  // world starts at 1,1.
+        cell_t *world_ptr = &world[1][1];  // world starts at 1,1.
         uint8_t count;
         uint16_t x;
         uint16_t y;
 
         for (y = limit_y; y > 0; y--) {
             for (x = limit_x; x > 0; x--) {
-                count = (*(world_ptr - WORLD_SIZE_X - 1) +
-                         *(world_ptr - WORLD_SIZE_X)) +
-                        (*(world_ptr - WORLD_SIZE_X + 1) +
-                         *(world_ptr - 1)) +
-                        (*(world_ptr + 1) +
-                         *(world_ptr + WORLD_SIZE_X - 1)) +
-                        (*(world_ptr + WORLD_SIZE_X) +
-                         *(world_ptr + WORLD_SIZE_X + 1)); // keep brackets to allow ??? todo name
+                count = ((world_ptr - WORLD_SIZE_X - 1)->alive +
+                         (world_ptr - WORLD_SIZE_X)->alive) +
+                        ((world_ptr - WORLD_SIZE_X + 1)->alive +
+                         (world_ptr - 1)->alive) +
+                        ((world_ptr + 1)->alive +
+                         (world_ptr + WORLD_SIZE_X - 1)->alive) +
+                        ((world_ptr + WORLD_SIZE_X)->alive +
+                         (world_ptr + WORLD_SIZE_X + 1)
+                             ->alive);  // keep brackets to allow ???
+                                        // todo name
 
-                if ((*world_ptr == true && count != 2 && count != 3) ||
-                    (*world_ptr == false && count == 3)) {
+                if ((world_ptr->alive && count != 2 && count != 3) ||
+                    (!world_ptr->alive && count == 3)) {
                     event_add(world_ptr);
                 }
                 world_ptr++;
@@ -327,165 +356,54 @@ class World {
         events_process();
     }
 
-    void view_draw_border(void) {
+    void world_init(void) {
         point_t i;
-        char border = (view_pos.y == 0) ? cell_border : ' ';
-        for (i.y = i.x = 0; i.x < view_size.x; i.x++) {
-            view.update(point_t{i.y, i.x}, border);
-        }
-        border = (view_pos.x == 0) ? cell_border : ' ';
-        for (i.y = i.x = 0; i.y < view_size.y; i.y++) {
-            view.update(point_t{i.y, i.x}, border);
-        }
-        border = (view_pos.y + view_size.y - 1 == world_size.y)
-                     ? cell_border
-                     : ' ';
-        for (i.y = view_size.y - 1, i.x = 0; i.x < view_size.x;
-             i.x++) {
-            view.update(point_t{i.y, i.x}, border);
-        }
-        border = (view_pos.x + view_size.x - 1 == world_size.x)
-                     ? cell_border
-                     : ' ';
-        for (i.y = 0, i.x = view_size.x - 1; i.y < view_size.y;
-             i.y++) {
-            view.update(point_t{i.y, i.x}, border);
-        }
-    }
+        cell_t *world_ptr = &world[0][0];
 
-    void view_draw_world(void) {
-        const uint16_t limit_y = view_size.y - 1;
-        const uint16_t limit_x = view_size.x - 1;
-        bool *world_ptr = &world[view_pos.y + 1][view_pos.x + 1];
-        uint16_t y;
-        uint16_t x;
-        const uint16_t a =
-            world_size.x - view_size.x +
-            2;  // remove multiplication operation from world[x][y]
-                // by incrementing the pointer by a.
-
-        view_alive_counter = 0;
-        for (y = 1; y < limit_y; y++) {
-            for (x = 1; x < limit_x; x++) {
-                view_alive_counter += *world_ptr;
-                view.update(point_t{y, x}, (*world_ptr == true)
-                                               ? cell_alive
-                                               : cell_dead);
+        for (i.y = 0; i.y < world_size.y; i.y++) {
+            for (i.x = 0; i.x < world_size.x; i.x++) {
+                if (i.y == 0 || i.x == 0 || i.y == world_size.y - 1 ||
+                    i.x == world_size.x - 1) {
+                    world_ptr->value = cell_border;
+                } else {
+                    world_ptr->value = cell_dead;
+                }
                 world_ptr++;
             }
-            world_ptr += a;
         }
-    }
-
-    void view_refresh_world(void) {
-        view_draw_world();
-        view.refresh_view();
     }
 
     void clear(const point_t pos, const point_t size) {
         const std::lock_guard<std::mutex> lock(mutex_world_update);
-        point_t p = transform_pos_view_boundaries(pos);
+        point_t p = limit_pos_to_world_size(pos);
         uint16_t limit_y = p.y + size.y;
         uint16_t limit_x = p.x + size.x;
         point_t i = {};
-        bool *world_ptr;
+        cell_t *world_ptr;
 
         events_clear();
 
         for (i.y = p.y; i.y < limit_y; i.y++) {
             world_ptr = &world[i.y][p.x];
             for (i.x = p.x; i.x < limit_x; i.x++) {
-                if (*world_ptr) {
+                if (world_ptr->alive) {
                     point_set_value(world_ptr, false);
                 }
                 world_ptr++;
             }
         }
 
-        view_refresh_world();
-    }
-#if _TIMED == 1
-    void fill(const point_t pos, const point_t size) {
-        const std::lock_guard<std::mutex> lock(mutex_world_update);
-        point_t i = {};
-        point_t p = transform_pos_view_boundaries(pos);
-        bool *world_ptr;
-        uint16_t limit_y = p.y + size.y;
-        uint16_t limit_x = p.x + size.x;
-
-        events_clear();
-
-        for (i.y = p.y; i.y < limit_y; i.y++) {
-            world_ptr = &world[i.y][p.x];
-            for (i.x = p.x; i.x < limit_x; i.x++) {
-                point_set_value(world_ptr, true);
-                world_ptr++;
-            }
-        }
-
-        view_refresh_world();
-    }
-#endif
-
-    void intro(void) {
-        infest_random_view(1000);
-        const char intro_line_1[14] = {"world of life"};
-        const char intro_line_2[22] = {"by jenny vermeltfoort"};
-        uint8_t i;
-        uint8_t x;
-        uint8_t y;
-
-        for (i = 0; i < INTRO_DURATION_S * 10; i++) {
-            world_generate();
-            view_refresh_world();
-            for (x = 0; x < 28; x++) {
-                for (y = 0; y < 4; y++) {
-                    view.update(
-                        point_t{static_cast<uint16_t>(
-                                    view_size.y / 2 - 2 + y),
-                                static_cast<uint16_t>(
-                                    view_size.x / 2 - 14 + x)},
-                        ' ');
-                }
-            }
-            for (x = 0; x < view_size.y; x++) {
-                for (y = 0; y < view_size.x; y++) {
-                    if (x == 0 || y == 0 || x == view_size.y - 1 ||
-                        y == view_size.x - 1) {
-                        view.update(point_t{x, y}, '@');
-                    }
-                }
-            }
-            for (x = 0; x < 13; x++) {
-                view.update(point_t{static_cast<uint16_t>(
-                                        view_size.y / 2 - 1),
-                                    static_cast<uint16_t>(
-                                        view_size.x / 2 - 7 + x)},
-                            intro_line_1[x]);
-            }
-            for (x = 0; x < 21; x++) {
-                view.update(
-                    point_t{static_cast<uint16_t>(view_size.y / 2),
-                            static_cast<uint16_t>(view_size.x / 2 -
-                                                  11 + x)},
-                    intro_line_2[x]);
-            }
-            view.refresh_view();
-            std::this_thread::sleep_for(std::chrono::milliseconds(
-                DEFAULT_REFRESH_RATE_INTRO));
-        }
+        view->refresh_view();
     }
 
    public:
     World() {
-        view.set_print_callback(std::bind(&World::print_info, this));
+        view->set_print_callback(std::bind(&World::print_info, this));
     }
 
-    ~World() {
-        delete events;
-    }
+    ~World() { delete events; }
 
-    void view_refresh_input(void) { view.refresh_input(); }
+    void view_refresh_input(void) { view->refresh_input(); }
 
     void set_cell_alive(const char c) {
         set_cell_character(cell_alive, c);
@@ -504,30 +422,30 @@ class World {
     }
     void set_view_step_size_y(const uint32_t y) {
         view_step_size.y = y;
-        view.refresh_info();
+        view->refresh_info();
     }
     void set_view_step_size_x(const uint32_t x) {
         view_step_size.x = x;
-        view.refresh_info();
+        view->refresh_info();
     }
     void set_refresh_rate(const uint16_t rate) {
         refresh_rate = rate;
-        view.refresh_info();
+        view->refresh_info();
     }
     void set_cursor_pos(const point_t pos) {
-        view.set_user_cursor_pos(pos);
+        view->set_user_cursor_pos(pos);
         world_cursor_position = {
             static_cast<uint16_t>(view_pos.y +
                                   get_pos_cursor_view().y),
             static_cast<uint16_t>(view_pos.x +
                                   get_pos_cursor_view().x),
         };
-        view.refresh_info();
-        view.refresh_view();
+        view->refresh_info();
+        view->refresh_view();
     }
 
     point_t get_pos_cursor_view(void) {
-        return view.get_pos_cursor_user();
+        return view->get_pos_cursor_user();
     }
     point_t get_pos_cursor_world(void) {
         return {
@@ -538,56 +456,68 @@ class World {
         };
     }
 
-    void view_move(const point_t pos) {
-        view_pos = transform_pos_view_boundaries(pos);
-        view_draw_world();
-        view_draw_border();
-        view.refresh_view();
+    void view_move(const point_t p) {
+        view_pos = p;
+        view->set_view_parameters(&world[view_pos.y][view_pos.x],
+                                  view_size, world_size.x);
+        view->refresh_view();
+        set_cursor_pos(view->get_pos_cursor_user());
     }
 
-    void view_move_left(void) {
-        view_move(point_t{
-            view_pos.y,
-            static_cast<uint16_t>((view_pos.x < view_step_size.x)
-                                      ? 0
-                                      : view_pos.x -
-                                            view_step_size.x),
-        });
+    void view_move_vertical(bool up) {
+        point_t p = view_pos;
+        if (up && p.y < view_step_size.y) {
+            p.y = 0;
+        } else if (!up && p.y + view_step_size.y >= world_size.y) {
+            p.y = static_cast<uint16_t>(world_size.y - view_size.y);
+        } else {
+            p.y += view_step_size.y * ((up == true) ? -1 : 1);
+        }
+        view_move(p);
     }
-    void view_move_right(void) {
-        view_move(point_t{
-            view_pos.y,
-            static_cast<uint16_t>(view_pos.x + view_step_size.x),
-        });
+
+    void view_move_horizontal(bool left) {
+        point_t p = view_pos;
+        if (left && p.x < view_step_size.x) {
+            p.x = 0;
+        } else if (!left && p.x + view_step_size.x >= world_size.x) {
+            p.x = static_cast<uint16_t>(world_size.x - view_size.x);
+        } else {
+            p.x += view_step_size.x * ((left == true) ? -1 : 1);
+        }
+        view_move(p);
     }
-    void view_move_top(void) {
-        view_move(point_t{
-            static_cast<uint16_t>((view_pos.y < view_step_size.y)
-                                      ? 0
-                                      : view_pos.y -
-                                            view_step_size.y),
-            view_pos.x,
-        });
-    }
-    void view_move_bottom(void) {
-        view_move(point_t{
-            static_cast<uint16_t>(view_pos.y + view_step_size.y),
-            view_pos.x,
-        });
+
+    void view_move_generic(view_move_direction_t direction) {
+        switch (direction) {
+            case (VIEW_MOVE_DOWN):
+                view_move_vertical(0);
+                break;
+            case (VIEW_MOVE_UP):
+                view_move_vertical(1);
+                break;
+            case (VIEW_MOVE_LEFT):
+                view_move_horizontal(1);
+                break;
+            case (VIEW_MOVE_RIGHT):
+                view_move_horizontal(0);
+                break;
+        }
     }
 
     bool point_in_world_life(point_t p) {
-        return (p.x > 0 && p.x < world_size.x && p.y > 0 && p.y < world_size.y);
+        return (p.x > 0 && p.x < world_size.x && p.y > 0 &&
+                p.y < world_size.y);
     }
 
     void set_point_value(point_t p, bool value) {
-        if (point_in_world_life(p)){
+        if (point_in_world_life(p)) {
             point_set_value(&world[p.y][p.x], value);
         }
     }
 
-    bool get_point_value(point_t p, bool &value) {
-        if (point_in_world_life(p)){
+    bool get_point_value(point_t p, cell_t &value) {
+        if (point_in_world_life(p)) {
             value = world[p.y][p.x];
             return true;
         }
@@ -608,10 +538,10 @@ class World {
                 static_cast<uint16_t>(rand() % size.y + pos.y),
                 static_cast<uint16_t>(rand() % size.x + pos.x),
             };
-            point_set_value(&world[p.y][p.x], !world[p.y][p.x]);
+            point_set_value(&world[p.y][p.x], !world[p.y][p.x].alive);
         }
 
-        view_refresh_world();
+        view->refresh_view();
     }
     void infest_random_view(uint32_t cells) {
         infest_random(
@@ -627,8 +557,10 @@ class World {
     void toggle_cursor_value(void) {
         const std::lock_guard<std::mutex> lock(mutex_world_update);
         point_set_value(
-            &world[world_cursor_position.y][world_cursor_position.x], !world[world_cursor_position.y][world_cursor_position.x]);
-        view_refresh_world();
+            &world[world_cursor_position.y][world_cursor_position.x],
+            !world[world_cursor_position.y][world_cursor_position.x]
+                 .alive);
+        view->refresh_view();
     }
 
     void clear_world(void) {
@@ -637,11 +569,10 @@ class World {
     void clear_view(void) { clear(view_pos, view_size); }
 
     void reset_view(void) {
-        view.reset();
-        view.draw_frame();
-        view.refresh_info();
-        view_draw_border();
-        view_refresh_world();
+        view->reset();
+        view->draw_frame();
+        view->refresh_info();
+        view->refresh_view();
     }
 
     void toggle_run_mode(void) {
@@ -649,14 +580,11 @@ class World {
         run_auto = !run_auto;
     }
 
-    void set_generations(uint32_t gens) {
-        generations = gens;
-    }
+    void set_generations(uint32_t gens) { generations = gens; }
 
     void run(void) {
-        intro();
-        clear_world();
-        view.set_user_cursor_pos(
+        world_init();
+        view->set_user_cursor_pos(
             {static_cast<uint16_t>(view_size.y / 2),
              static_cast<uint16_t>(view_size.x / 2)});
         reset_view();
@@ -664,30 +592,16 @@ class World {
         while (!flag_stop) {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(refresh_rate));
-#if _TIMED == 1
-            fill(world_start_pos, world_size_life);
-            auto strt = std::chrono::high_resolution_clock::now();
-#endif
-                if (generations > 0) {
-                    if (run_auto == false) {
-                        generations--;
-                    }
-                    world_generate();
-                    view_refresh_world();
-                    view.refresh_info();
-                    view.refresh_input();
-#if _TIMED == 1
-            auto stp = std::chrono::high_resolution_clock::now();
-            auto duration =
-                std::chrono::duration_cast<std::chrono::microseconds>(
-                    stp - strt);
-            std::cout << std::endl
-                      << "Time taken by function: "
-                      << duration.count() << " microseconds"
-                      << std::endl;
-#endif
-                    
+
+            if (generations > 0) {
+                if (run_auto == false) {
+                    generations--;
                 }
+                world_generate();
+                view->refresh_view();
+                view->refresh_info();
+                view->refresh_input();
+            }
         }
     }
 
@@ -748,13 +662,17 @@ void cb_input_cursor_d(World &world) {
 }
 
 void cb_input_cursor_t(World &world) { world.toggle_cursor_value(); }
-void cb_input_move_view_left(World &world) { world.view_move_left(); }
-void cb_input_move_view_right(World &world) {
-    world.view_move_right();
+void cb_input_move_view_left(World &world) {
+    world.view_move_generic(VIEW_MOVE_LEFT);
 }
-void cb_input_move_view_top(World &world) { world.view_move_top(); }
-void cb_input_move_view_bottom(World &world) {
-    world.view_move_bottom();
+void cb_input_move_view_right(World &world) {
+    world.view_move_generic(VIEW_MOVE_RIGHT);
+}
+void cb_input_move_view_up(World &world) {
+    world.view_move_generic(VIEW_MOVE_UP);
+}
+void cb_input_move_view_down(World &world) {
+    world.view_move_generic(VIEW_MOVE_DOWN);
 }
 
 void cb_input_generations(World &world) {
@@ -769,7 +687,6 @@ void cb_input_generations(World &world) {
         world.set_generations(generations);
     }
 }
-
 
 void cb_input_stop(World &world) { world.stop(); }
 void cb_input_reset_view(World &world) { world.reset_view(); }
@@ -885,35 +802,76 @@ void cb_input_parameter(World &world) {
 }
 
 void cb_input_print_help(World &world) {
-    std::cout << "See the list below for all options, input is parsed after each <enter>." << std::endl;
-    std::cout << "Usage example: 'pca@\\n' sets the alive cell representation to '@'." << std::endl;
+    std::cout << "See the list below for all options, input is "
+                 "parsed after each <enter>."
+              << std::endl;
+    std::cout << "Usage example: 'pca@\\n' sets the alive cell "
+                 "representation to '@'."
+              << std::endl;
     std::cout << "<h> \t\t\t\t this help." << std::endl;
     std::cout << "<e> \t\t\t\t stop the programm." << std::endl;
     std::cout << "<g><a/s> \t\t\t generations sub-menu." << std::endl;
     std::cout << "\t <a> \t\t\t toggle auto run mode." << std::endl;
-    std::cout << "\t <s>[num] \t\t when in run_mode = '0', perform [num] amount of generations." << std::endl;
+    std::cout << "\t <s>[num] \t\t when in run_mode = '0', perform "
+                 "[num] amount of generations."
+              << std::endl;
     std::cout << "<r> \t\t\t\t reset the view." << std::endl;
-    std::cout << "<m>[num1];[num2] \t\t move the view to coordinates y = [num1], x = [num2], example: 'm10;10'." << std::endl;
-    std::cout << "<8,6,4,5> \t\t\t move the view left(4), right(6), top(8), bottom(5) by configured step size, see <p><v>." << std::endl;
-    std::cout << "<w,a,s,d> \t\t\t move the the cursor left(a), right(d), top(w), bottom(s)." << std::endl;
-    std::cout << "<t> \t\t\t\t toggle the cell highlighted by the cursor (pink)." << std::endl;
-    std::cout << "<i><v/v[num]/w/w[num]> \t\t infest sub-menu." << std::endl;
-    std::cout << "\t <v> \t\t\t randomly infest the view with default infest cell count, see <p><i><v>." << std::endl;
-    std::cout << "\t <v>[num] \t\t randomly infest the view with [num] amount of cells." << std::endl;
-    std::cout << "\t <w> \t\t\t randomly infest the world with default infest cell count, see <p><i><w>." << std::endl;
-    std::cout << "\t <v>[num] \t\t randomly infest the world with [num] amount of cells." << std::endl;
-    std::cout << "<p><c/i/v/r> \t\t\t parameter sub-menu." << std::endl;
+    std::cout << "<m>[num1];[num2] \t\t move the view to coordinates "
+                 "y = [num1], x = [num2], example: 'm10;10'."
+              << std::endl;
+    std::cout << "<8,6,4,5> \t\t\t move the view left(4), right(6), "
+                 "top(8), bottom(5) by configured step size, see "
+                 "<p><v>."
+              << std::endl;
+    std::cout << "<w,a,s,d> \t\t\t move the the cursor left(a), "
+                 "right(d), top(w), bottom(s)."
+              << std::endl;
+    std::cout << "<t> \t\t\t\t toggle the cell highlighted by the "
+                 "cursor (pink)."
+              << std::endl;
+    std::cout << "<i><v/v[num]/w/w[num]> \t\t infest sub-menu."
+              << std::endl;
+    std::cout << "\t <v> \t\t\t randomly infest the view with "
+                 "default infest cell count, see <p><i><v>."
+              << std::endl;
+    std::cout << "\t <v>[num] \t\t randomly infest the view with "
+                 "[num] amount of cells."
+              << std::endl;
+    std::cout << "\t <w> \t\t\t randomly infest the world with "
+                 "default infest cell count, see <p><i><w>."
+              << std::endl;
+    std::cout << "\t <v>[num] \t\t randomly infest the world with "
+                 "[num] amount of cells."
+              << std::endl;
+    std::cout << "<p><c/i/v/r> \t\t\t parameter sub-menu."
+              << std::endl;
     std::cout << "\t <c><a/d/b> \t\t cell sub-menu." << std::endl;
-    std::cout << "\t\t <a>[char] \t set alive cell representation to [char], example: 'pca@'." << std::endl;
-    std::cout << "\t\t <d>[char] \t set dead cell representation to [char]." << std::endl;
-    std::cout << "\t\t <b>[char] \t set border cell representation to [char]." << std::endl;
+    std::cout << "\t\t <a>[char] \t set alive cell representation to "
+                 "[char], example: 'pca@'."
+              << std::endl;
+    std::cout << "\t\t <d>[char] \t set dead cell representation "
+                 "to [char]."
+              << std::endl;
+    std::cout << "\t\t <b>[char] \t set border cell representation "
+                 "to [char]."
+              << std::endl;
     std::cout << "\t <i><v/w> \t\t infest sub-menu." << std::endl;
-    std::cout << "\t\t <v>[num] \t\t set default infest cell count to [num], view, see <i><v>." << std::endl;
-    std::cout << "\t\t <w>[num] \t\t set default infest cell count to [num], world, see <i><w>." << std::endl;
+    std::cout << "\t\t <v>[num] \t\t set default infest cell count "
+                 "to [num], view, see <i><v>."
+              << std::endl;
+    std::cout << "\t\t <w>[num] \t\t set default infest cell count "
+                 "to [num], world, see <i><w>."
+              << std::endl;
     std::cout << "\t <v><y/x> \t\t view sub-menu" << std::endl;
-    std::cout << "\t\t <y>[num] \t set view move step size, y axis, see <8,6,4,5>." << std::endl;
-    std::cout << "\t\t <x>[num] \t set view move step size, x axis, see <8,6,4,5>." << std::endl;
-    std::cout << "\t <r>[num] \t\t set the refresh rate to [num] milliseconds, example 'pr100'." << std::endl;
+    std::cout << "\t\t <y>[num] \t set view move step size, y axis, "
+                 "see <8,6,4,5>."
+              << std::endl;
+    std::cout << "\t\t <x>[num] \t set view move step size, x axis, "
+                 "see <8,6,4,5>."
+              << std::endl;
+    std::cout << "\t <r>[num] \t\t set the refresh rate to [num] "
+                 "milliseconds, example 'pr100'."
+              << std::endl;
 }
 
 void cb_input_glider_gun(World &world) {
@@ -921,12 +879,12 @@ void cb_input_glider_gun(World &world) {
     char c;
     fs.open("glidergun.txt", std::fstream::in);
     point_t p = world.get_pos_cursor_world();
-    bool value;
+    cell_t value;
 
     if (!fs.is_open()) {
-        std::cout
-            << "Failed to open ./glidergun.txt, make sure it exists! "
-             << std::endl;
+        std::cout << "Failed to open ./glidergun.txt, make sure "
+                     "it exists! "
+                  << std::endl;
         return;
     }
 
@@ -936,12 +894,11 @@ void cb_input_glider_gun(World &world) {
             break;
         }
 
-        if (c == ' ' && value == true) {
-            world.set_point_value(p, false);}
-        else if (c == 'x' && value == false) {
+        if (c == ' ' && value.alive == true) {
+            world.set_point_value(p, false);
+        } else if (c == 'x' && value.alive == false) {
             world.set_point_value(p, true);
-        }
-        else if(c == '\n') {
+        } else if (c == '\n') {
             p.y++;
             p.x = world.get_pos_cursor_world().x - 1;
         }
@@ -950,7 +907,6 @@ void cb_input_glider_gun(World &world) {
 
     world.reset_view();
 }
-
 
 void loop_input(World &world) {
     char c;
@@ -969,10 +925,10 @@ void loop_input(World &world) {
         {'d', cb_input_cursor_d},
         {'t', cb_input_cursor_t},
         {'p', cb_input_parameter},
-        {'8', cb_input_move_view_top},
+        {'8', cb_input_move_view_up},
         {'6', cb_input_move_view_right},
         {'4', cb_input_move_view_left},
-        {'5', cb_input_move_view_bottom},
+        {'5', cb_input_move_view_down},
     };
 
     while (true) {

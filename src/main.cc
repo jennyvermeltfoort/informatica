@@ -1,10 +1,4 @@
 //
-#define _TIMED 0
-
-#if _TIMED == 1
-#include <chrono>
-#endif
-#include <cstdlib>
 #include <ctime>
 #include <fstream>
 #include <functional>
@@ -12,15 +6,12 @@
 #include <map>
 #include <mutex>
 #include <thread>
-#include <vector>
 
 /* Configuration. */
 const char DEFAULT_CELL_ALIVE_C = '&';
 const char DEFAULT_CELL_DEAD_C = ' ';
 const char DEFAULT_CELL_BORDER_C = '@';
 const uint16_t DEFAULT_REFRESH_RATE = 1000;
-const uint16_t DEFAULT_REFRESH_RATE_INTRO = 100;
-const uint16_t INTRO_DURATION_S = 3;
 const uint16_t WORLD_SIZE_Y = 1000;
 const uint16_t WORLD_SIZE_X = 1000;
 const uint16_t DEFAULT_VIEW_SIZE_Y = 10;
@@ -28,8 +19,8 @@ const uint16_t DEFAULT_VIEW_SIZE_X = 100;
 
 #pragma pack(1)
 typedef struct CELL_T {
-    bool alive;
-    char value;
+    bool alive : 1;
+    char value : 7;
 } cell_t;
 #pragma pack()
 typedef cell_t world_storage_t[WORLD_SIZE_Y][WORLD_SIZE_X];
@@ -38,6 +29,13 @@ typedef struct POINT_T {
     uint16_t y;
     uint16_t x;
 } point_t;
+
+typedef enum VIEW_MOVE_DIRECTION_T {
+    VIEW_MOVE_UP,
+    VIEW_MOVE_DOWN,
+    VIEW_MOVE_LEFT,
+    VIEW_MOVE_RIGHT,
+} view_move_direction_t;
 
 inline bool ascii_is_int(uint8_t c) {
     const uint8_t ASCII_NUMBER_0 = 48;
@@ -54,12 +52,17 @@ inline bool ascii_is_symbol(uint8_t c) {
     return (c >= ASCII_SYMBOL_START && c <= ASCII_SYMBOL_END);
 }
 
-typedef enum VIEW_MOVE_DIRECTION_T {
-    VIEW_MOVE_UP,
-    VIEW_MOVE_DOWN,
-    VIEW_MOVE_LEFT,
-    VIEW_MOVE_RIGHT,
-} view_move_direction_t;
+/* Generates a random number using a LCG x_1 = ((a * x_0 + 1) % mod)
+ * with parameters a = 22695477, c = 1 and mod = 2147483648. The
+ * output is a 14 bit integer, bits 16 .. 30 from x_1.
+ */
+uint16_t random_gen() {
+    static uint32_t num = std::time(NULL);
+    num = (22695477 * num + 1) % 2147483648;
+    return static_cast<uint16_t>(num >> 16 & 0x7FFF);
+}
+
+uint16_t min(uint16_t v1, uint16_t v2) { return (v1 < v2) ? v1 : v2; }
 
 class View {
    private:
@@ -225,8 +228,8 @@ class World {
     char cell_alive = DEFAULT_CELL_ALIVE_C;
     char cell_dead = DEFAULT_CELL_DEAD_C;
     char cell_border = DEFAULT_CELL_BORDER_C;
-    uint32_t infest_random_view_cell_default = 1000;
-    uint32_t infest_random_world_cell_default = 1000000;
+    uint32_t default_infest_cell_view = 1000;
+    uint32_t default_infest_cell_world = 1000000;
 
     world_storage_t world = {};
     const point_t world_size = {WORLD_SIZE_Y, WORLD_SIZE_X};
@@ -249,9 +252,8 @@ class World {
     View *view = new View(&world[view_pos.y][view_pos.x], view_size,
                           world_size.x - 1);
     uint16_t refresh_rate = DEFAULT_REFRESH_RATE;
-    std::mutex mutex_world_update;
+    std::mutex mutex_world;
     uint32_t world_alive_counter = 0;
-    uint32_t view_alive_counter = 0;
     bool flag_stop = false;
     point_t world_cursor_position = {
         static_cast<uint16_t>(view_pos.y + get_pos_cursor_view().y),
@@ -271,40 +273,49 @@ class World {
                      "border]: '"
                   << cell_alive << "," << cell_dead << ","
                   << cell_border << "'; ";
-        std::cout << "Cells alive[world,view]: '"
-                  << +world_alive_counter << ","
-                  << +view_alive_counter << "'; ";
+        std::cout << "Cells alive[world]: '" << +world_alive_counter
+                  << "'; ";
         std::cout << std::endl;
         std::cout << "Default random infest cell count[view,world]: '"
-                  << +infest_random_view_cell_default << ","
-                  << +infest_random_world_cell_default << "'; ";
+                  << +default_infest_cell_view << ","
+                  << +default_infest_cell_world << "'; ";
         std::cout << "Run mode, generations: '" << +run_auto << ","
                   << +generations << "'; ";
-    }
-
-    void point_set_value(cell_t *cell, const bool alive) {
-        world_alive_counter += (alive) ? 1 : -1;
-        cell->alive = alive;
-        cell->value = (alive) ? cell_alive : cell_dead;
     }
 
     void set_cell_character(char &cell, const char c) {
         if (ascii_is_symbol(c) || c == ' ') {
             cell = c;
+            world_init();  // reinitialze world to replace characters.
             view->refresh_view();
             view->refresh_info();
         }
     }
 
-    point_t limit_pos_to_world_size(const point_t pos) {
-        return {
-            (pos.y + view_size.y > world_size.y)
-                ? static_cast<uint16_t>(world_size.y - view_size.y)
-                : pos.y,
-            (pos.x + view_size.x > world_size.x)
-                ? static_cast<uint16_t>(world_size.x - view_size.x)
-                : pos.x,
-        };
+    void world_set_cell(cell_t *cell, const bool alive) {
+        world_alive_counter += (alive) ? 1 : -1;
+        cell->alive = alive;
+        cell->value = (alive) ? cell_alive : cell_dead;
+    }
+
+    void world_init(void) {
+        const std::lock_guard<std::mutex> lock(mutex_world);
+        point_t i;
+        cell_t *world_ptr = &world[0][0];
+
+        for (i.y = 0; i.y < world_size.y; i.y++) {
+            for (i.x = 0; i.x < world_size.x; i.x++) {
+                if (i.y == 0 || i.x == 0 || i.y == world_size.y - 1 ||
+                    i.x == world_size.x - 1) {
+                    world_ptr->value = cell_border;
+                } else if (!world_ptr->alive) {
+                    world_ptr->value = cell_dead;
+                } else {
+                    world_ptr->value = cell_alive;
+                }
+                world_ptr++;
+            }
+        }
     }
 
     inline void events_clear(void) { event_current = events; }
@@ -314,12 +325,12 @@ class World {
     }
     void events_process(void) {
         while (event_current != events) {
-            point_set_value(*event_current, !(*event_current)->alive);
+            world_set_cell(*event_current, !(*event_current)->alive);
             event_current--;
         };
     }
 
-    void points_health_check(void) {
+    void world_validate_cells(void) {
         static const uint16_t limit_y = world_size.y - 2;
         static const uint16_t limit_x = world_size.x - 2;
         cell_t *world_ptr = &world[1][1];  // world starts at 1,1.
@@ -350,47 +361,62 @@ class World {
         }
     }
 
+    /* Perform a generation of world. */
     void world_generate(void) {
-        const std::lock_guard<std::mutex> lock(mutex_world_update);
-        points_health_check();
+        const std::lock_guard<std::mutex> lock(mutex_world);
+        world_validate_cells();
         events_process();
     }
 
-    void world_init(void) {
-        point_t i;
-        cell_t *world_ptr = &world[0][0];
+    /* Clear the world from pos till size.*/
+    void world_clear(point_t pos, const point_t size) {
+        const std::lock_guard<std::mutex> lock(mutex_world);
+        uint16_t limit_y;
+        uint16_t limit_x;
+        point_t i = {};
+        cell_t *world_ptr;
 
-        for (i.y = 0; i.y < world_size.y; i.y++) {
-            for (i.x = 0; i.x < world_size.x; i.x++) {
-                if (i.y == 0 || i.x == 0 || i.y == world_size.y - 1 ||
-                    i.x == world_size.x - 1) {
-                    world_ptr->value = cell_border;
-                } else {
-                    world_ptr->value = cell_dead;
+        pos.y = min(world_size.y - view_size.y, pos.y);
+        pos.x = min(world_size.x - view_size.x, pos.x);
+
+        limit_y = pos.y + size.y;
+        limit_x = pos.x + size.x;
+
+        events_clear();
+
+        for (i.y = pos.y; i.y < limit_y; i.y++) {
+            world_ptr = &world[i.y][pos.x];
+            for (i.x = pos.x; i.x < limit_x; i.x++) {
+                if (world_ptr->alive) {
+                    world_set_cell(world_ptr, false);
                 }
                 world_ptr++;
             }
         }
+
+        view->refresh_view();
     }
 
-    void clear(const point_t pos, const point_t size) {
-        const std::lock_guard<std::mutex> lock(mutex_world_update);
-        point_t p = limit_pos_to_world_size(pos);
-        uint16_t limit_y = p.y + size.y;
-        uint16_t limit_x = p.x + size.x;
-        point_t i = {};
-        cell_t *world_ptr;
+    /* Infest the position + size with <cells> amount of random cells.
+     * If the position exceeds boundaries the function is returned
+     * without action taken. */
+    void infest_random(const point_t pos, const point_t size,
+                       const uint32_t cells) {
+        const std::lock_guard<std::mutex> lock(mutex_world);
+        uint32_t i;
+        point_t p;
 
-        events_clear();
+        if (pos.y + size.y > world_size.y ||
+            pos.x + size.x > world_size.x) {
+            return;
+        }
 
-        for (i.y = p.y; i.y < limit_y; i.y++) {
-            world_ptr = &world[i.y][p.x];
-            for (i.x = p.x; i.x < limit_x; i.x++) {
-                if (world_ptr->alive) {
-                    point_set_value(world_ptr, false);
-                }
-                world_ptr++;
-            }
+        for (i = 0; i < cells; i++) {
+            p = {
+                static_cast<uint16_t>(random_gen() % size.y + pos.y),
+                static_cast<uint16_t>(random_gen() % size.x + pos.x),
+            };
+            world_set_cell(&world[p.y][p.x], !world[p.y][p.x].alive);
         }
 
         view->refresh_view();
@@ -401,7 +427,7 @@ class World {
         view->set_print_callback(std::bind(&World::print_info, this));
     }
 
-    ~World() { delete events; }
+    ~World() { delete[] events; }
 
     void view_refresh_input(void) { view->refresh_input(); }
 
@@ -414,11 +440,11 @@ class World {
     void set_cell_border(const char c) {
         set_cell_character(cell_border, c);
     }
-    void set_infest_random_view_cell_default(const uint32_t cells) {
-        infest_random_view_cell_default = cells;
+    void set_default_infest_cell_view(const uint32_t cells) {
+        default_infest_cell_view = cells;
     }
-    void set_infest_random_world_cell_default(const uint32_t cells) {
-        infest_random_world_cell_default = cells;
+    void set_default_infest_cell_world(const uint32_t cells) {
+        default_infest_cell_world = cells;
     }
     void set_view_step_size_y(const uint32_t y) {
         view_step_size.y = y;
@@ -505,58 +531,45 @@ class World {
         }
     }
 
-    bool point_in_world_life(point_t p) {
-        return (p.x > 0 && p.x < world_size.x && p.y > 0 &&
-                p.y < world_size.y);
-    }
-
-    void set_point_value(point_t p, bool value) {
-        if (point_in_world_life(p)) {
-            point_set_value(&world[p.y][p.x], value);
+    /* Set cell value in the world at point.
+        <value>: 0 (dead), 1 (alive).
+        If <p> is outside of world boudaries no action is taken. */
+    void world_set_cell(point_t p, bool value) {
+        if (p.x < world_size.x && p.y < world_size.y) {
+            world_set_cell(&world[p.y][p.x], value);
         }
     }
 
-    bool get_point_value(point_t p, cell_t &value) {
-        if (point_in_world_life(p)) {
-            value = world[p.y][p.x];
-            return true;
+    /* Get cell in the world at point <p>.
+     Returns NULL if <p> is ouside of world boundaries.*/
+    const cell_t *world_get_cell(point_t p) {
+        if (p.x < world_size.x && p.y < world_size.y) {
+            return &world[p.y][p.x];
         }
-        return false;
+        return NULL;
     }
 
-    void infest_random(const point_t pos, const point_t size,
-                       const uint32_t cells) {
-        const std::lock_guard<std::mutex> lock(mutex_world_update);
-        uint32_t i;
-        point_t p;
-
-        for (i = 0; i < std::min(WORLD_SIZE_X * WORLD_SIZE_Y -
-                                     world_alive_counter,
-                                 cells);
-             i++) {
-            p = {
-                static_cast<uint16_t>(rand() % size.y + pos.y),
-                static_cast<uint16_t>(rand() % size.x + pos.x),
-            };
-            point_set_value(&world[p.y][p.x], !world[p.y][p.x].alive);
-        }
-
-        view->refresh_view();
-    }
+    /* Infest the view with <cells> amount of random cells. If cells
+     * == 0 then the class variable default_infest_cell_view is
+     * used. */
     void infest_random_view(uint32_t cells) {
         infest_random(
             view_pos, view_size,
-            (cells == 0) ? infest_random_view_cell_default : cells);
+            (cells == 0) ? default_infest_cell_view : cells);
     }
+
+    /* Infest the world with <cells> amount of random cells. If cells
+     * == 0 then the class variable default_infest_cell_world
+     * is used. */
     void infest_random_world(uint32_t cells) {
         infest_random(
             world_start_pos, world_size_life,
-            (cells == 0) ? infest_random_world_cell_default : cells);
+            (cells == 0) ? default_infest_cell_world : cells);
     }
 
     void toggle_cursor_value(void) {
-        const std::lock_guard<std::mutex> lock(mutex_world_update);
-        point_set_value(
+        const std::lock_guard<std::mutex> lock(mutex_world);
+        world_set_cell(
             &world[world_cursor_position.y][world_cursor_position.x],
             !world[world_cursor_position.y][world_cursor_position.x]
                  .alive);
@@ -564,9 +577,9 @@ class World {
     }
 
     void clear_world(void) {
-        clear(world_start_pos, world_size_life);
+        world_clear(world_start_pos, world_size_life);
     }
-    void clear_view(void) { clear(view_pos, view_size); }
+    void clear_view(void) { world_clear(view_pos, view_size); }
 
     void reset_view(void) {
         view->reset();
@@ -580,7 +593,7 @@ class World {
         run_auto = !run_auto;
     }
 
-    void set_generations(uint32_t gens) { generations = gens; }
+    void set_generations(uint32_t value) { generations = value; }
 
     void run(void) {
         world_init();
@@ -600,7 +613,6 @@ class World {
                 world_generate();
                 view->refresh_view();
                 view->refresh_info();
-                view->refresh_input();
             }
         }
     }
@@ -763,8 +775,8 @@ void cb_input_parameter_infest(World &world) {
     uint32_t *arr[2] = {&number, NULL};
     std::map<char, std::function<void(World &, uint32_t)>>
         map_callback{
-            {'v', &World::set_infest_random_view_cell_default},
-            {'w', &World::set_infest_random_world_cell_default},
+            {'v', &World::set_default_infest_cell_view},
+            {'w', &World::set_default_infest_cell_world},
         };
 
     if (map_callback.find(c) != map_callback.end()) {
@@ -876,11 +888,11 @@ void cb_input_print_help(World &world) {
 
 void cb_input_glider_gun(World &world) {
     std::fstream fs;
-    char c;
-    fs.open("glidergun.txt", std::fstream::in);
     point_t p = world.get_pos_cursor_world();
-    cell_t value;
+    const cell_t *value;
+    char c;
 
+    fs.open("glidergun.txt", std::fstream::in);
     if (!fs.is_open()) {
         std::cout << "Failed to open ./glidergun.txt, make sure "
                      "it exists! "
@@ -890,14 +902,15 @@ void cb_input_glider_gun(World &world) {
 
     do {
         c = fs.get();
-        if (!world.get_point_value(p, value)) {
+        value = world.world_get_cell(p);
+        if (value == NULL) {
             break;
         }
 
-        if (c == ' ' && value.alive == true) {
-            world.set_point_value(p, false);
-        } else if (c == 'x' && value.alive == false) {
-            world.set_point_value(p, true);
+        if (c == ' ' && value->alive == true) {
+            world.world_set_cell(p, false);
+        } else if (c == 'x' && value->alive == false) {
+            world.world_set_cell(p, true);
         } else if (c == '\n') {
             p.y++;
             p.x = world.get_pos_cursor_world().x - 1;
@@ -947,12 +960,9 @@ void loop_input(World &world) {
 
 int main() {
     World world;
-
-    std::srand(std::time(nullptr));
     std::thread thread_world(&World::run, &world);
 
     loop_input(world);
-
     thread_world.join();
 
     return 1;

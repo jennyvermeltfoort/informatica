@@ -582,6 +582,7 @@ class World {
 
     void run(void) {
         world_init();
+        view_move(view_pos);
         view->set_user_cursor_pos(
             {static_cast<int16_t>(view_size.y / 2),
              static_cast<int16_t>(view_size.x / 2)});

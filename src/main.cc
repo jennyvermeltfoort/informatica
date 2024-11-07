@@ -7,6 +7,36 @@
 #include <thread>
 #include <unordered_map>
 
+/* Configuration. */
+const char DEFAULT_CELL_ALIVE_C = '&';
+const char DEFAULT_CELL_DEAD_C = ' ';
+const char DEFAULT_CELL_BORDER_C = '@';
+const uint16_t DEFAULT_REFRESH_RATE = 1000;
+const uint16_t WORLD_SIZE_Y = 1000;
+const uint16_t WORLD_SIZE_X = 1000;
+const uint16_t DEFAULT_VIEW_SIZE_Y = 10;
+const uint16_t DEFAULT_VIEW_SIZE_X = 100;
+
+/* The world is made up of cells. It consists of two matrices, one
+ * which contains all the boolean values of all cells, and one which
+ * contains all the char values of all cells. The struct is packed to
+ * a singel byte, thus the distance between the boolean value and the
+ * char value of a cell is the size of one matrix (WORLD_SIZE_Y *
+ * WORLD_SIZE_X).*/
+#pragma pack(1)
+typedef struct WORLD_STORAGE_T {
+    bool alive[WORLD_SIZE_Y][WORLD_SIZE_X];
+    char value[WORLD_SIZE_Y][WORLD_SIZE_X];
+} world_storage_t;
+#pragma pack()
+const uint32_t WORLD_STORAGE_MATRIX_SIZE =
+    WORLD_SIZE_Y * WORLD_SIZE_X;
+/* Retrieves the value pointer that relates to the given bool pointer.
+ */
+char *world_storage_get_value_ptr(bool *ptr) {
+    return reinterpret_cast<char *>(ptr + WORLD_STORAGE_MATRIX_SIZE);
+}
+
 typedef struct POINT_T {
     int16_t y;
     int16_t x;
@@ -210,52 +240,39 @@ class View {
 
 class World {
    private:
-    char cell_alive = '&';
-    char cell_dead = ' ';
-    char cell_border = '@';
+    char cell_alive = DEFAULT_CELL_ALIVE_C;
+    char cell_dead = DEFAULT_CELL_DEAD_C;
+    char cell_border = DEFAULT_CELL_BORDER_C;
     uint32_t default_infest_cell_view = 1000;
     uint32_t default_infest_cell_world = 1000000;
-    uint16_t refresh_rate = 1000;
 
-    /* The world is made up of cells. It consists of two matrices, one
-     * which contains all the boolean values of all cells, and one
-     * which contains all the char values of all cells. The struct is
-     * packed to a singel byte, thus the distance between the boolean
-     * value and the char value of a cell is the size of one matrix
-     * (WORLD_SIZE_Y * WORLD_SIZE_X).*/
-#pragma pack(1)
-    typedef struct WORLD_STORAGE_T {
-        bool *alive;
-        char *value;
-    } world_storage_t;
-#pragma pack()
+    world_storage_t world = {};
+    const point_t world_size = {WORLD_SIZE_Y, WORLD_SIZE_X};
+    point_t world_size_life = {
+        WORLD_SIZE_Y - 2,
+        WORLD_SIZE_X - 2};  // world has dead cells at borders.
+    point_t world_start_pos = point_t{1, 1};
 
-    uint16_t *world_flat;
-    world_storage_t *world;
-    point_t world_size;
-    point_t world_size_life;
+    bool **events =
+        new bool *[WORLD_SIZE_X * WORLD_SIZE_Y];  // allocate to heap
+                                                  // instead of stack.
+    bool **event_current = events;
 
-    bool **events;
-    bool **event_current;
-
-    point_t view_size;
-    point_t view_step_size;
-    point_t view_pos;
-    View *view;
+    point_t view_size = {DEFAULT_VIEW_SIZE_Y, DEFAULT_VIEW_SIZE_X};
+    point_t view_step_size = {view_size.y, view_size.x};
+    point_t view_pos = {
+        static_cast<int16_t>(world_size.y / 2 - view_size.y / 2),
+        static_cast<int16_t>(world_size.x / 2 - view_size.x / 2),
+    };
+    View *view = new View(&world.value[view_pos.y][view_pos.x],
+                          view_size, world_size.x - 1);
+    uint16_t refresh_rate = DEFAULT_REFRESH_RATE;
     uint32_t world_alive_counter = 0;
 
     bool flag_stop = false;
     uint32_t generations = 1;
     bool run_auto = 1;
     std::mutex mutex_world;
-
-    /* Retrieves the value pointer that relates to the given bool
-     * pointer.
-     */
-    char *world_storage_get_value_ptr(bool *ptr) {
-        return reinterpret_cast<char *>(
-            ptr + world_size.y * world_size.x * sizeof(bool));
-    }
 
     void print_info(void) {
         const point_t cursor = get_pos_cursor_world();
@@ -298,7 +315,7 @@ class World {
     void world_init(void) {
         const std::lock_guard<std::mutex> lock(mutex_world);
         point_t i;
-        bool *cell_ptr = &world->alive[0];
+        bool *cell_ptr = &world.alive[0][0];
         char *value_ptr;
 
         for (i.y = 0; i.y < world_size.y; i.y++) {
@@ -334,22 +351,21 @@ class World {
         const std::lock_guard<std::mutex> lock(mutex_world);
         static const uint16_t limit_y = world_size.y - 2;
         static const uint16_t limit_x = world_size.x - 2;
-        bool *cell_ptr = &world->alive[1 * world_size.x +
-                                       1];  // world starts at 1,1.
+        bool *cell_ptr = &world.alive[1][1];  // world starts at 1,1.
         uint8_t count;
         uint16_t x;
         uint16_t y;
 
         for (y = limit_y; y > 0; y--) {
             for (x = limit_x; x > 0; x--) {
-                count = (*(cell_ptr - world_size.x - 1) +
-                         *(cell_ptr - world_size.x)) +
-                        (*(cell_ptr - world_size.x + 1) +
+                count = (*(cell_ptr - WORLD_SIZE_X - 1) +
+                         *(cell_ptr - WORLD_SIZE_X)) +
+                        (*(cell_ptr - WORLD_SIZE_X + 1) +
                          *(cell_ptr - 1)) +
                         (*(cell_ptr + 1) +
-                         *(cell_ptr + world_size.x - 1)) +
-                        (*(cell_ptr + world_size.x) +
-                         *(cell_ptr + world_size.x +
+                         *(cell_ptr + WORLD_SIZE_X - 1)) +
+                        (*(cell_ptr + WORLD_SIZE_X) +
+                         *(cell_ptr + WORLD_SIZE_X +
                            1));  // keep brackets to allow ???
                                  // todo name
 
@@ -380,7 +396,7 @@ class World {
         events_clear();
 
         for (i.y = pos.y; i.y < limit_y; i.y++) {
-            cell_ptr = &world->alive[i.y * world_size.x + pos.x];
+            cell_ptr = &world.alive[i.y][pos.x];
             for (i.x = pos.x; i.x < limit_x; i.x++) {
                 if (*cell_ptr) {
                     world_set_cell(cell_ptr, false);
@@ -411,52 +427,19 @@ class World {
                 static_cast<int16_t>(random_gen() % size.y + pos.y),
                 static_cast<int16_t>(random_gen() % size.x + pos.x),
             };
-            world_set_cell(&world->alive[p.y * world_size.x + p.x],
-                           !world->alive[p.y * world_size.x + p.x]);
+            world_set_cell(&world.alive[p.y][p.x],
+                           !world.alive[p.y][p.x]);
         }
 
         view->refresh_view();
     }
 
    public:
-    World(const point_t size_world, const point_t size_view) {
-        world_flat =
-            new uint16_t[world_size.y * world_size.x * sizeof(bool) +
-                         world_size.y * world_size.x * sizeof(char)];
-
-        world_size = size_world;
-        world_size_life = {static_cast<int16_t>(world_size.x - 2),
-                           static_cast<int16_t>(world_size.y - 2)};
-        world = new world_storage_t;
-
-        world->alive = reinterpret_cast<bool *>(&world_flat[0]);
-        world->value = reinterpret_cast<char *>(
-            &world_flat[world_size.y * world_size.x]);
-
-        view_size = size_view;
-        view_step_size = {view_size.y, view_size.x};
-        view_pos = {
-            static_cast<int16_t>(world_size.y / 2 - view_size.y / 2),
-            static_cast<int16_t>(world_size.x / 2 - view_size.x / 2),
-        };
-
-        view = new View(
-            &world->value[view_pos.y * world_size.x + view_pos.x],
-            view_size, world_size.x - 1);
-        events = new bool
-            *[world_size.x * world_size.y];  // allocate to heap
-        // instead of stack.
-        event_current = events;
-
+    World() {
         view->set_print_callback(std::bind(&World::print_info, this));
     }
 
-    ~World() {
-        delete[] world_flat;
-        delete world;
-        delete[] events;
-        delete view;
-    }
+    ~World() { delete[] events; }
 
     void view_refresh_input(void) { view->refresh_input(); }
 
@@ -510,8 +493,8 @@ class World {
         view_pos.y = limit(p.y, world_size.y - view_size.y, 0);
         view_pos.x = limit(p.x, world_size.x - view_size.x, 0);
         view->set_view_parameters(
-            &world->value[view_pos.y * world_size.x + view_pos.x],
-            view_size, world_size.x);
+            &world.value[view_pos.y][view_pos.x], view_size,
+            world_size.x);
         set_cursor_pos(view->get_pos_cursor_user());
     }
 
@@ -539,8 +522,7 @@ class World {
         If <p> is outside of world boudaries no action is taken. */
     void world_set_cell(point_t p, bool value) {
         if (p.x < world_size.x && p.y < world_size.y) {
-            world_set_cell(&world->alive[p.y * world_size.x + p.x],
-                           value);
+            world_set_cell(&world.alive[p.y][p.x], value);
         }
     }
 
@@ -548,7 +530,7 @@ class World {
      Returns NULL if <p> is ouside of world boundaries.*/
     const bool *world_get_cell(point_t p) {
         if (p.x < world_size.x && p.y < world_size.y) {
-            return &world->alive[p.y * world_size.x + p.x];
+            return &world.alive[p.y][p.x];
         }
         return NULL;
     }
@@ -567,21 +549,20 @@ class World {
      * is used. */
     void infest_random_world(uint32_t cells) {
         infest_random(
-            point_t{1, 1}, world_size_life,
+            world_start_pos, world_size_life,
             (cells == 0) ? default_infest_cell_world : cells);
     }
 
     void clear_world(void) {
-        world_clear(point_t{1, 1}, world_size_life);
+        world_clear(world_start_pos, world_size_life);
     }
     void clear_view(void) { world_clear(view_pos, view_size); }
 
     void toggle_cursor_value(void) {
         const std::lock_guard<std::mutex> lock(mutex_world);
         const point_t cursor = get_pos_cursor_world();
-        world_set_cell(
-            &world->alive[cursor.y * world_size.x + cursor.x],
-            !world->alive[cursor.y * world_size.x + cursor.x]);
+        world_set_cell(&world.alive[cursor.y][cursor.x],
+                       !world.alive[cursor.y][cursor.x]);
         view->refresh_view();
     }
 
@@ -951,10 +932,7 @@ void loop_input(World &world) {
 }
 
 int main() {
-    const point_t WORLD_SIZE = {1000, 1000};
-    const point_t VIEW_SIZE = {10, 100};
-    World world(WORLD_SIZE, VIEW_SIZE);
-
+    World world;
     std::thread thread_world(&World::run, &world);
 
     loop_input(world);

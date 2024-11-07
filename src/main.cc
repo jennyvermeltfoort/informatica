@@ -1,4 +1,16 @@
-//
+/**
+ * g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0
+ *
+ * A application that simulates a cellular automaton, specifically
+ * Conway's Game of Life. It allows users to interact with the
+ * simulation through a command-line interface, providing various
+ * options to control the simulation, view, and cell parameters.
+ *
+ * Date: 11-7-2024
+ * Author: Jenny Vermeltfoort
+ * Number: 3787494
+ */
+
 #include <ctime>
 #include <fstream>
 #include <functional>
@@ -7,29 +19,52 @@
 #include <thread>
 #include <unordered_map>
 
+/**
+ * @struct POINT_T
+ * @brief Represents a point in a 2D space with x and y coordinates.
+ */
 typedef struct POINT_T {
     int16_t y;
     int16_t x;
 } point_t;
 
+/**
+ * @brief Checks if a character is an ASCII integer.
+ * @param c The character to check.
+ * @return True if the character is an ASCII integer, false otherwise.
+ */
 inline bool ascii_is_int(uint8_t c) {
     const uint8_t ASCII_NUMBER_0 = 48;
     const uint8_t ASCII_NUMBER_9 = 57;
     return (c >= ASCII_NUMBER_0 && c <= ASCII_NUMBER_9);
 }
+
+/**
+ * @brief Checks if a character is an ASCII whitespace.
+ * @param c The character to check.
+ * @return True if the character is an ASCII whitespace, false
+ * otherwise.
+ */
 inline bool ascii_is_whitespace(uint8_t c) {
     return (c == ' ' || c == '\t');
 }
 
+/**
+ * @brief Checks if a character is an ASCII symbol.
+ * @param c The character to check.
+ * @return True if the character is an ASCII symbol, false otherwise.
+ */
 inline bool ascii_is_symbol(uint8_t c) {
     const uint8_t ASCII_SYMBOL_START = 33;
     const uint8_t ASCII_SYMBOL_END = 126;
     return (c >= ASCII_SYMBOL_START && c <= ASCII_SYMBOL_END);
 }
 
-/* Generates a random number using a LCG (x_1 = (a * x_0 + 1) % mod)
- * with parameters a = 22695477, c = 1 and mod = 2147483648. The
+/**
+ * @brief Generates a random number using a LCG (x_1 = (a * x_0 + 1) %
+ * mod) with parameters a = 22695477, c = 1 and mod = 2147483648. The
  * output is a 14 bit integer, bits 16 .. 30 of x_1.
+ * @return A 14-bit integer.
  */
 int16_t random_gen() {
     static uint32_t num = std::time(NULL);
@@ -37,12 +72,37 @@ int16_t random_gen() {
     return static_cast<int16_t>(num >> 16 & 0x7FFF);
 }
 
+/**
+ * @brief Returns the minimum of two integers.
+ * @param n1 The first integer.
+ * @param n2 The second integer.
+ * @return The minimum of the two integers.
+ */
 int16_t min(int16_t n1, int16_t n2) { return (n1 < n2) ? n1 : n2; }
+
+/**
+ * @brief Returns the maximum of two integers.
+ * @param n1 The first integer.
+ * @param n2 The second integer.
+ * @return The maximum of the two integers.
+ */
 int16_t max(int16_t n1, int16_t n2) { return (n1 > n2) ? n1 : n2; }
+
+/**
+ * @brief Limits a number to be within a specified range.
+ * @param n The number to limit.
+ * @param upper The upper limit.
+ * @param lower The lower limit.
+ * @return The limited number.
+ */
 int16_t limit(int16_t n, int16_t upper, int16_t lower) {
     return max(min(n, upper), lower);
 }
 
+/**
+ * @class View
+ * @brief Represents a view of the world.
+ */
 class View {
    private:
     const std::string input_start_string = ">> ";
@@ -57,34 +117,87 @@ class View {
     int16_t line_info;
     bool flag_cb_print_info_set = false;
 
+    /**
+     * @brief Moves the cursor to a specified point.
+     * @param point The point to move the cursor to.
+     */
     void cursor_move(const point_t point) {
         std::cout << "\033[" << +point.y << ";" << +point.x << "H"
                   << std::flush;
     }
+
+    /**
+     * @brief Hides the cursor.
+     */
     void cursor_hide(void) { std::cout << "\033[?25l" << std::flush; }
+
+    /**
+     * @brief Shows the cursor.
+     */
     void cursor_show(void) { std::cout << "\033[?25h" << std::flush; }
+
+    /**
+     * @brief Moves the cursor to the start of the view.
+     */
     void cursor_move_start(void) { cursor_move(point_t{0, 0}); }
+
+    /**
+     * @brief Moves the cursor to the end of the view.
+     */
     void cursor_move_end(void) { cursor_move(view_size); }
+
+    /**
+     * @brief Moves the cursor to the input line.
+     */
     void cursor_move_input(void) {
         point_t p = {line_input, 1};
         cursor_move(p);
     }
+
+    /**
+     * @brief Moves the cursor to the info line.
+     */
     void cursor_move_info(void) {
         point_t p = {line_info, 1};
         cursor_move(p);
     }
 
+    /**
+     * @brief Erases the display from the cursor to the end of the
+     * screen.
+     * @param n The erase mode (0: to end of screen, 1: to beginning
+     * of screen, 2: entire screen).
+     */
     void cursor_erase_display(const uint8_t n) {
         std::cout << "\033[" << +n << "J" << std::flush;
     }
+
+    /**
+     * @brief Erases the line from the cursor to the end of the line.
+     * @param n The erase mode (0: to end of line, 1: to beginning of
+     * line, 2: entire line).
+     */
     void cursor_erase_line(const uint8_t n) {
         std::cout << "\033[" << +n << "K" << std::flush;
     }
 
+    /**
+     * @brief Saves the current cursor position.
+     */
     void cursor_save(void) { std::cout << "\033[s" << std::flush; }
+
+    /**
+     * @brief Restores the saved cursor position.
+     */
     void cursor_restore(void) { std::cout << "\033[u" << std::flush; }
 
    public:
+    /**
+     * @brief Constructs a View object.
+     * @param view Pointer to the view data.
+     * @param size Size of the view.
+     * @param distance Distance between lines in the view data.
+     */
     View(uint8_t *view, point_t size, uint32_t distance) {
         set_view_parameters(view, size, distance);
         view_user_cursor = {static_cast<int16_t>(view_size.y + 1),
@@ -95,7 +208,18 @@ class View {
         cursor_erase_display(2);
         cursor_hide();
     }
+
+    /**
+     * @brief Resets the view.
+     */
     void reset(void) { draw_frame(); }
+
+    /**
+     * @brief Sets the view parameters.
+     * @param view Pointer to the view data.
+     * @param size Size of the view.
+     * @param distance Distance between lines in the view data.
+     */
     void set_view_parameters(uint8_t *view, point_t size,
                              uint32_t distance) {
         view_ptr = view;
@@ -105,11 +229,18 @@ class View {
                        // view_ptr at line (y+1,x)
     }
 
+    /**
+     * @brief Sets the print callback function.
+     * @param cb The callback function.
+     */
     void set_print_callback(std::function<void(void)> cb) {
         cb_print_info = cb;
         flag_cb_print_info_set = true;
     }
 
+    /**
+     * @brief Draws the frame around the view.
+     */
     void draw_frame(void) {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
         const char info_frame_character = '-';
@@ -134,6 +265,9 @@ class View {
         cursor_show();
     }
 
+    /**
+     * @brief Refreshes the info line.
+     */
     void refresh_info(void) {
         cursor_save();
         cursor_move_info();
@@ -144,6 +278,9 @@ class View {
         cursor_restore();
     }
 
+    /**
+     * @brief Refreshes the input line.
+     */
     void refresh_input(void) {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
         cursor_move_input();
@@ -151,8 +288,16 @@ class View {
         std::cout << input_start_string << std::flush;
     }
 
+    /**
+     * @brief Gets the position of the user cursor.
+     * @return The position of the user cursor.
+     */
     point_t get_pos_cursor_user(void) { return view_user_cursor; }
 
+    /**
+     * @brief Sets the position of the user cursor.
+     * @param pos The new position of the user cursor.
+     */
     void set_user_cursor_pos(const point_t pos) {
         view_user_cursor = {
             limit(pos.y, view_size.y - 1, 0),
@@ -160,8 +305,15 @@ class View {
         };
     }
 
+    /**
+     * @brief Gets the size of the view.
+     * @return The size of the view.
+     */
     point_t get_size(void) { return view_size; }
 
+    /**
+     * @brief Refreshes the view.
+     */
     void refresh_view(void) {
         const std::lock_guard<std::mutex> lock(mutex_cursor);
         uint8_t *ptr = view_ptr;
@@ -201,6 +353,11 @@ class View {
     }
 };
 
+/**
+ * @class World
+ * @brief Represents the world of cells, including the view and user
+ * interactions.
+ */
 class World {
    private:
     char cell_aliv = '&';
@@ -210,12 +367,15 @@ class World {
     uint32_t infest_cell_world = 1000000;
     uint16_t refresh_rate = 1000;
 
-    /* The world is made up of cells. It consists of two matrices, one
-     * which contains all the boolean values of all cells, and one
-     * which contains all the char values of all cells. The struct is
-     * packed to a singel byte, thus the distance between the boolean
-     * value and the char value of a cell is the size of one matrix
-     * (world_size.y * world_size.x).*/
+    /**
+     * @struct WORLD_STORAGE_T
+     * @brief The world is made up of cells. It consists of two
+     * matrices, one which contains all the boolean values of all
+     * cells, and one which contains all the char values of all cells.
+     * The struct is packed to a singel byte, thus the distance
+     * between the boolean value and the char value of a cell is the
+     * size of one matrix (world_size.y * world_size.x).
+     */
 #pragma pack(1)
     typedef struct WORLD_STORAGE_T {
         uint8_t *alive;
@@ -241,13 +401,19 @@ class World {
     bool run_auto = 1;
     std::mutex mutex_world;
 
-    /* Retrieves the value pointer that relates to the given bool
-     * pointer.
+    /**
+     * @brief Retrieves the value pointer that relates to the given
+     * bool pointer.
+     * @param ptr The bool pointer.
+     * @return The value pointer.
      */
     uint8_t *world_storage_get_value_ptr(uint8_t *ptr) {
         return ptr + world_size.y * world_size.x * sizeof(bool);
     }
 
+    /**
+     * @brief Prints information about the world.
+     */
     void print_info(void) {
         const point_t cursor = get_pos_cursor_world();
         std::cout << "Cursor[y,x]: '" << +cursor.y << "," << +cursor.x
@@ -270,6 +436,11 @@ class World {
                   << +generations << "'; ";
     }
 
+    /**
+     * @brief Sets the character for given cell property.
+     * @param cell The cell to set.
+     * @param c The character to set.
+     */
     void set_cell_char(char &cell, const char c) {
         if (ascii_is_symbol(c) || c == ' ') {
             cell = c;
@@ -279,6 +450,10 @@ class World {
         }
     }
 
+    /**
+     * @brief Sets the position of the cursor.
+     * @param pos The new position of the cursor.
+     */
     void set_cursor_pos(point_t pos) {
         pos.y = limit(pos.y, view_size.y - 2, 1);
         pos.x = limit(pos.x, view_size.x - 2, 1);
@@ -287,6 +462,10 @@ class World {
         view->refresh_view();
     }
 
+    /**
+     * @brief Moves the view to a specified position.
+     * @param p The new position of the view.
+     */
     void view_move(const point_t p) {
         view_pos.y = limit(p.y, world_size.y - view_size.y, 0);
         view_pos.x = limit(p.x, world_size.x - view_size.x, 0);
@@ -296,6 +475,11 @@ class World {
         set_cursor_pos(view->get_pos_cursor_user());
     }
 
+    /**
+     * @brief Sets the state of a cell.
+     * @param cell_ptr Pointer to the cell.
+     * @param alive The new state of the cell.
+     */
     void world_set_cell(uint8_t *cell_ptr, const bool alive) {
         world_alive_counter += (alive) ? 1 : -1;
         *cell_ptr = alive;
@@ -303,6 +487,9 @@ class World {
             (alive) ? cell_aliv : cell_dead;
     }
 
+    /**
+     * @brief Initializes the world.
+     */
     void world_init(void) {
         const std::lock_guard<std::mutex> lock(mutex_world);
         point_t i;
@@ -325,11 +512,23 @@ class World {
         }
     }
 
+    /**
+     * @brief Clears the events list.
+     */
     inline void events_clear(void) { event_current = events; }
+
+    /**
+     * @brief Adds an event to the events list.
+     * @param e The event to add.
+     */
     inline void event_add(uint8_t *e) {
         event_current++;
         *event_current = e;
     }
+
+    /**
+     * @brief Processes the events in the events list.
+     */
     void events_process(void) {
         const std::lock_guard<std::mutex> lock(mutex_world);
         while (event_current != events) {
@@ -338,6 +537,9 @@ class World {
         };
     }
 
+    /**
+     * @brief Validates the cells in the world.
+     */
     void world_validate_cells(void) {
         const std::lock_guard<std::mutex> lock(mutex_world);
         static const uint16_t limit_y = world_size.y - 2;
@@ -370,7 +572,12 @@ class World {
         }
     }
 
-    /* Clear the world from pos till size.*/
+    /**
+     * @brief Clears the world from a specified position to a
+     * specified size.
+     * @param pos The starting position.
+     * @param size The size of the area to clear.
+     */
     void world_clear(point_t pos, const point_t size) {
         const std::lock_guard<std::mutex> lock(mutex_world);
         uint16_t limit_y;
@@ -399,9 +606,12 @@ class World {
         view->refresh_view();
     }
 
-    /* Infest the position + size with <cells> amount of random cells.
-     * If the position exceeds boundaries the function is returned
-     * without action taken. */
+    /**
+     * @brief Infests a specified area with random cells.
+     * @param pos The starting position.
+     * @param size The size of the area to infest.
+     * @param cells The number of cells to infest.
+     */
     void infest_random(const point_t pos, const point_t size,
                        const uint32_t cells) {
         const std::lock_guard<std::mutex> lock(mutex_world);
@@ -426,6 +636,11 @@ class World {
     }
 
    public:
+    /**
+     * @brief Constructs a World object.
+     * @param _world_size The size of the world.
+     * @param _view_size The size of the view.
+     */
     World(const point_t _world_size, const point_t _view_size)
         : world_size(_world_size), view_size(_view_size) {
         uint64_t world_flat_size = world_size.y * world_size.x * 2;
@@ -452,6 +667,9 @@ class World {
         event_current = events;
     }
 
+    /**
+     * @brief Destructs the World object.
+     */
     ~World() {
         delete[] world_flat;
         delete world;
@@ -459,29 +677,75 @@ class World {
         delete view;
     }
 
+    /**
+     * @brief Sets the number of generations.
+     * @param v The number of generations.
+     */
     void set_generations(uint32_t v) { generations = v; }
+
+    /**
+     * @brief Sets the character for an alive cell.
+     * @param c The character for an alive cell.
+     */
     void set_cell_aliv(const char c) { set_cell_char(cell_aliv, c); }
+
+    /**
+     * @brief Sets the character for a dead cell.
+     * @param c The character for a dead cell.
+     */
     void set_cell_dead(const char c) { set_cell_char(cell_dead, c); }
+
+    /**
+     * @brief Sets the character for a border cell.
+     * @param c The character for a border cell.
+     */
     void set_cell_bord(const char c) { set_cell_char(cell_bord, c); }
+
+    /**
+     * @brief Sets the number of cells to infest in the view.
+     * @param v The number of cells to infest.
+     */
     void set_infest_cell_view(const uint32_t v) {
         infest_cell_view = v;
     }
+
+    /**
+     * @brief Sets the number of cells to infest in the world.
+     * @param v The number of cells to infest.
+     */
     void set_infest_cell_world(const uint32_t v) {
         infest_cell_world = v;
     }
+
+    /**
+     * @brief Sets the view step size in the y direction.
+     * @param y The view step size in the y direction.
+     */
     void set_view_step_size_y(const uint32_t y) {
         view_step_size.y = y;
         view->refresh_info();
     }
+    /**
+     * @brief Sets the view step size in the x direction.
+     * @param x The view step size in the x direction.
+     */
     void set_view_step_size_x(const uint32_t x) {
         view_step_size.x = x;
         view->refresh_info();
     }
+
+    /**
+     * @brief Sets the refresh rate.
+     * @param rate The refresh rate in milliseconds.
+     */
     void set_refresh_rate(const uint16_t rate) {
         refresh_rate = rate;
         view->refresh_info();
     }
 
+    /**
+     * @brief Toggles the value of the cell highlighted by the cursor.
+     */
     void toggle_cursor_value(void) {
         const std::lock_guard<std::mutex> lock(mutex_world);
         const point_t cursor = get_pos_cursor_world();
@@ -491,14 +755,26 @@ class World {
         view->refresh_view();
     }
 
+    /**
+     * @brief Toggles the run mode.
+     */
     void toggle_run_mode(void) {
         generations = 1;
         run_auto = !run_auto;
     }
 
+    /**
+     * @brief Gets the position of the cursor in the view.
+     * @return The position of the cursor in the view.
+     */
     point_t get_pos_cursor_view(void) {
         return view->get_pos_cursor_user();
     }
+
+    /**
+     * @brief Gets the position of the cursor in the world.
+     * @return The position of the cursor in the world.
+     */
     point_t get_pos_cursor_world(void) {
         const point_t cursor = view->get_pos_cursor_user();
         return {
@@ -507,47 +783,84 @@ class World {
         };
     }
 
+    /**
+     * @brief Moves the cursor up.
+     */
     void cursor_move_up() {
         set_cursor_pos(
             {static_cast<int16_t>(view->get_pos_cursor_user().y + 1),
              view->get_pos_cursor_user().x});
     }
+
+    /**
+     * @brief Moves the cursor down.
+     */
     void cursor_move_down() {
         set_cursor_pos(
             {static_cast<int16_t>(view->get_pos_cursor_user().y - 1),
              view->get_pos_cursor_user().x});
     }
+
+    /**
+     * @brief Moves the cursor left.
+     */
     void cursor_move_left() {
         set_cursor_pos({view->get_pos_cursor_user().y,
                         static_cast<int16_t>(
                             view->get_pos_cursor_user().x - 1)});
     }
+
+    /**
+     * @brief Moves the cursor right.
+     */
     void cursor_move_right() {
         set_cursor_pos({view->get_pos_cursor_user().y,
                         static_cast<int16_t>(
                             view->get_pos_cursor_user().x + 1)});
     }
 
+    /**
+     * @brief Moves the view up.
+     */
     void view_move_up(void) {
         view_move(
             {static_cast<int16_t>(view_pos.y - view_step_size.y),
              view_pos.x});
     }
+
+    /**
+     * @brief Moves the view down.
+     */
     void view_move_down(void) {
         view_move(
             {static_cast<int16_t>(view_pos.y + view_step_size.y),
              view_pos.x});
     }
+
+    /**
+     * @brief Moves the view left.
+     */
     void view_move_left(void) {
         view_move({view_pos.y, static_cast<int16_t>(
                                    view_pos.x - view_step_size.x)});
     }
+
+    /**
+     * @brief Moves the view right.
+     */
     void view_move_right(void) {
         view_move({view_pos.y, static_cast<int16_t>(
                                    view_pos.x + view_step_size.x)});
     }
+
+    /**
+     * @brief Refreshes the input line.
+     */
     void view_refresh_input(void) { view->refresh_input(); }
 
+    /**
+     * @brief Resets the view.
+     */
     void view_reset(void) {
         view_move(view_pos);
         view->reset();
@@ -556,9 +869,11 @@ class World {
         view->refresh_view();
     }
 
-    /* Set cell value in the world at point.
-        <value>: 0 (dead), 1 (alive).
-        If <p> is outside of world boudaries no action is taken. */
+    /**
+     * @brief Sets the value of a cell in the world.
+     * @param p The position of the cell.
+     * @param value The value of the cell (0: dead, 1: alive).
+     */
     void world_set_cell(point_t p, uint8_t value) {
         if (p.x < world_size.x && p.y < world_size.y) {
             world_set_cell(&world->alive[p.y * world_size.x + p.x],
@@ -566,8 +881,12 @@ class World {
         }
     }
 
-    /* Get cell in the world at point <p>.
-     Returns NULL if <p> is ouside of world boundaries.*/
+    /**
+     * @brief Gets the value of a cell in the world.
+     * @param p The position of the cell.
+     * @return The value of the cell, or NULL if the position is out
+     * of bounds.
+     */
     const uint8_t *world_get_cell(point_t p) {
         if (p.x < world_size.x && p.y < world_size.y) {
             return &world->alive[p.y * world_size.x + p.x];
@@ -575,17 +894,21 @@ class World {
         return NULL;
     }
 
-    /* Infest the view with <cells> amount of random cells. If cells
-     * == 0 then the class variable infest_cell_view is
-     * used. */
+    /**
+     * @brief Infests the view with random cells.
+     * @param cells The number of cells to infest. If 0, the default
+     * value is used.
+     */
     void infest_random_view(uint32_t cells) {
         infest_random(view_pos, view_size,
                       (cells == 0) ? infest_cell_view : cells);
     }
 
-    /* Infest the world with <cells> amount of random cells. If cells
-     * == 0 then the class variable infest_cell_world
-     * is used. */
+    /**
+     * @brief Infests the world with random cells.
+     * @param cells The number of cells to infest. If 0, the default
+     * value is used.
+     */
     void infest_random_world(uint32_t cells) {
         infest_random(point_t{1, 1},
                       {static_cast<int16_t>(world_size.x - 2),
@@ -593,13 +916,23 @@ class World {
                       (cells == 0) ? infest_cell_world : cells);
     }
 
+    /**
+     * @brief Clears the world.
+     */
     void clear_world(void) {
         world_clear(point_t{1, 1},
                     {static_cast<int16_t>(world_size.x - 2),
                      static_cast<int16_t>(world_size.y - 2)});
     }
+
+    /**
+     * @brief Clears the view.
+     */
     void clear_view(void) { world_clear(view_pos, view_size); }
 
+    /**
+     * @brief Runs the world simulation.
+     */
     void run(void) {
         world_init();
         view->set_user_cursor_pos(
@@ -623,9 +956,16 @@ class World {
         }
     }
 
+    /**
+     * @brief Stops the world simulation.
+     */
     void stop(void) { flag_stop = true; }
 };
 
+/**
+ * @brief Reads integers from standard input.
+ * @param arr Pointer to an array to store the integers.
+ */
 void input_get_int(uint32_t **arr) {
     const uint8_t ASCII_NUMBER_MASK = 0XF;
     char c;
@@ -651,18 +991,76 @@ void input_get_int(uint32_t **arr) {
     return input_get_int(++arr);
 }
 
+/**
+ * @brief Toggles the value of the cell highlighted by the cursor.
+ * @param w The world object.
+ */
 void cbi_cursor_toggle(World &w) { w.toggle_cursor_value(); }
+
+/**
+ * @brief Moves the cursor up.
+ * @param w The world object.
+ */
 void cbi_cursor_up(World &w) { w.cursor_move_up(); }
+
+/**
+ * @brief Moves the cursor down.
+ * @param w The world object.
+ */
 void cbi_cursor_down(World &w) { w.cursor_move_down(); }
+
+/**
+ * @brief Moves the cursor left.
+ * @param w The world object.
+ */
 void cbi_cursor_left(World &w) { w.cursor_move_left(); }
+
+/**
+ * @brief Moves the cursor right.
+ * @param w The world object.
+ */
 void cbi_cursor_right(World &w) { w.cursor_move_right(); }
+
+/**
+ * @brief Moves the view left.
+ * @param w The world object.
+ */
 void cbi_move_view_left(World &w) { w.view_move_left(); }
+
+/**
+ * @brief Moves the view right.
+ * @param w The world object.
+ */
 void cbi_move_view_right(World &w) { w.view_move_right(); }
+
+/**
+ * @brief Moves the view up.
+ * @param w The world object.
+ */
 void cbi_move_view_up(World &w) { w.view_move_up(); }
+
+/**
+ * @brief Moves the view down.
+ * @param w The world object.
+ */
 void cbi_move_view_down(World &w) { w.view_move_down(); }
+
+/**
+ * @brief Stops the world simulation.
+ * @param w The world object.
+ */
 void cbi_stop(World &w) { w.stop(); }
+
+/**
+ * @brief Resets the view.
+ * @param w The world object.
+ */
 void cbi_reset_view(World &w) { w.view_reset(); }
 
+/**
+ * @brief Sets the number of generations.
+ * @param world The world object.
+ */
 void cbi_generations(World &world) {
     char c = std::cin.get();
     uint32_t generations = 0;
@@ -675,7 +1073,10 @@ void cbi_generations(World &world) {
         world.set_generations(generations);
     }
 }
-
+/**
+ * @brief Clear submenu.
+ * @param world The world object.
+ */
 void cbi_clear(World &world) {
     char c = std::cin.get();
     std::unordered_map<char, std::function<void(World &)>>
@@ -689,6 +1090,10 @@ void cbi_clear(World &world) {
     }
 }
 
+/**
+ * @brief Infests the world or view with random cells.
+ * @param world The world object.
+ */
 void cbi_infest(World &world) {
     char c = std::cin.get();
     uint32_t cells = 0;
@@ -705,6 +1110,10 @@ void cbi_infest(World &world) {
     }
 }
 
+/**
+ * @brief Sets the refresh rate.
+ * @param world The world object.
+ */
 void cbi_parameter_refresh_rate(World &world) {
     uint32_t refresh_rate = 0;
     uint32_t *arr[2] = {&refresh_rate, NULL};
@@ -716,6 +1125,10 @@ void cbi_parameter_refresh_rate(World &world) {
     }
 }
 
+/**
+ * @brief View submenu.
+ * @param world The world object.
+ */
 void cbi_parameter_view(World &world) {
     char c = std::cin.get();
     uint32_t number = 0;
@@ -732,6 +1145,10 @@ void cbi_parameter_view(World &world) {
     }
 }
 
+/**
+ * @brief Infest submenu.
+ * @param world The world object.
+ */
 void cbi_parameter_infest(World &world) {
     char c = std::cin.get();
     uint32_t number = 0;
@@ -748,6 +1165,10 @@ void cbi_parameter_infest(World &world) {
     }
 }
 
+/**
+ * @brief Cell submenu.
+ * @param world The world object.
+ */
 void cbi_parameter_cell(World &world) {
     char c = std::cin.get();
     char v = std::cin.get();
@@ -763,6 +1184,10 @@ void cbi_parameter_cell(World &world) {
     }
 }
 
+/**
+ * @brief Parameter submenu.
+ * @param world The world object.
+ */
 void cbi_parameter(World &world) {
     char c = std::cin.get();
     std::unordered_map<char, std::function<void(World &)>>
@@ -778,6 +1203,10 @@ void cbi_parameter(World &world) {
     }
 }
 
+/**
+ * @brief Prints the help message.
+ * @param world The world object.
+ */
 void cbi_print_help(World &world) {
     std::cout << "See the list below for all options, input is "
                  "parsed after each <enter>."
@@ -848,6 +1277,10 @@ void cbi_print_help(World &world) {
               << std::endl;
 }
 
+/**
+ * @brief Loads a glider gun pattern into the world from file.
+ * @param world The world object.
+ */
 void cbi_glider_gun(World &world) {
     const point_t w = world.get_pos_cursor_world();
     std::fstream fs;
@@ -882,6 +1315,10 @@ void cbi_glider_gun(World &world) {
     world.view_reset();
 }
 
+/**
+ * @brief Handles user input.
+ * @param world The world object.
+ */
 void loop_input(World &world) {
     char c;
     std::unordered_map<char, std::function<void(World &)>>
@@ -909,6 +1346,10 @@ void loop_input(World &world) {
     }
 }
 
+/**
+ * @brief The main function.
+ * @return 1 on success.
+ */
 int main() {
     const point_t WORLD_SIZE = {1000, 1000};
     const point_t VIEW_SIZE = {10, 100};

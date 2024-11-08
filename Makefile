@@ -1,6 +1,6 @@
 # tested with: g++-11
 CC 		= g++
-CFLAGS  = -g -Wall -std=c++11
+CFLAGS  = -g -Wall -std=c++11 -O1
 SRC 	= src
 TARGET 	= $(SRC)/main.cc 
 

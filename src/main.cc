@@ -739,7 +739,7 @@ class World {
      * @param rate The refresh rate in milliseconds.
      */
     void set_refresh_rate(const uint16_t rate) {
-        refresh_rate = rate;
+        refresh_rate = limit(rate, 10000, 10);
         view->refresh_info();
     }
 

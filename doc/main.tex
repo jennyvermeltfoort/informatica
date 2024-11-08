@@ -1,0 +1,81 @@
+
+\documentclass[10pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{float}
+
+\parindent=0pt
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks = true,
+    linkcolor = blue,
+    linkbordercolor = {white},
+}
+\usepackage{fullpage}
+
+\frenchspacing
+
+\usepackage{microtype}
+
+\usepackage[english,dutch]{babel}
+
+\usepackage{listings}
+% Er zijn talloze parameters ...
+\lstdefinestyle{myStyle}{
+    belowcaptionskip=1\baselineskip,
+    breaklines=true,
+    frame=none,
+    numbers=left, numberstyle=\tiny, numberfirstline=false, breaklines=true,
+    stepnumber=1, tabsize=8,
+    basicstyle=\footnotesize\ttfamily,
+    keywordstyle=\bfseries\color{blue!40!black},
+    commentstyle=\itshape\color{green!40!black},
+    identifierstyle=\color{black},
+    backgroundcolor=\color{gray!10!white},
+}
+
+\title{Opdracht 2}
+\author{Jenny Vermeltfoort}
+
+\begin{document}
+
+\selectlanguage{dutch}
+\def\tablename{Tabel}
+
+\maketitle
+
+\section{Uitleg}
+
+\section{Vragen}
+
+\newpage
+\section{Tijd}
+Zie tabel \ref{tab:time} voor de tijd verantwoording.
+
+\begin{table}[H]
+    \begin{center}
+        \begin{tabular}{ l c r }
+            Item              & Uur & Datum      \\ \hline
+            Eisen verwerkt    & 1   & 22-09-2024 \\
+            Plan bedacht      & 1   & 22-09-2024 \\
+            Argument parser   & 1   & 26-09-2024 \\
+            File formatter    & 2   & 26-09-2024 \\
+            Letter counter    & 0.5 & 26-09-2024 \\
+            Lychrel algoritme & 2   & 26-09-2024 \\
+            Afwerking         & 1   & 27-09-2024 \\
+            Afwerking         & 1   & 10-10-2024 \\
+        \end{tabular}
+
+        \caption{Tijd verantwoording}
+        \label{tab:time}
+    \end{center}
+\end{table}
+
+\section{Code}\label{sec:code}
+\lstinputlisting[caption=main.cpp,
+    label={lst:listing-cpp},
+    language=C++,
+    style=myStyle]{../src/main.cc}
+
+\end{document}

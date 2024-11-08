@@ -202,9 +202,6 @@ class View {
         set_view_parameters(view, size, distance);
         view_user_cursor = {static_cast<int16_t>(view_size.y + 1),
                             static_cast<int16_t>(view_size.x + 1)};
-        line_input = view_size.y + size_info_line + 3;
-        line_info = view_size.y + 2;
-
         cursor_erase_display(2);
         cursor_hide();
     }
@@ -226,7 +223,10 @@ class View {
         view_size = size;
         view_ptr_line_distance =
             distance;  // the distance from view_ptr at line (y,x) to
-                       // view_ptr at line (y+1,x)
+        // view_ptr at line (y+1,x)
+
+        line_input = view_size.y + size_info_line + 3;
+        line_info = view_size.y + 2;
     }
 
     /**
@@ -448,18 +448,6 @@ class World {
             view->refresh_view();
             view->refresh_info();
         }
-    }
-
-    /**
-     * @brief Sets the position of the cursor.
-     * @param pos The new position of the cursor.
-     */
-    void set_cursor_pos(point_t pos) {
-        pos.y = limit(pos.y, view_size.y - 2, 1);
-        pos.x = limit(pos.x, view_size.x - 2, 1);
-        view->set_user_cursor_pos(pos);
-        view->refresh_info();
-        view->refresh_view();
     }
 
     /**
@@ -719,18 +707,19 @@ class World {
 
     /**
      * @brief Sets the view step size in the y direction.
-     * @param y The view step size in the y direction.
+     * @param v The view step size in the y direction.
      */
-    void set_view_step_size_y(const uint32_t y) {
-        view_step_size.y = y;
+    void set_view_step_size_y(const uint32_t v) {
+        view_step_size.y = v;
         view->refresh_info();
     }
+
     /**
      * @brief Sets the view step size in the x direction.
-     * @param x The view step size in the x direction.
+     * @param v The view step size in the x direction.
      */
-    void set_view_step_size_x(const uint32_t x) {
-        view_step_size.x = x;
+    void set_view_step_size_x(const uint32_t v) {
+        view_step_size.x = v;
         view->refresh_info();
     }
 
@@ -744,6 +733,23 @@ class World {
                                      // < 10 is too fast to display.
         view->refresh_info();
     }
+
+    /**
+     * @brief Sets the view size.
+     * @param v
+     */
+    void set_view_size(const point_t s) {
+        view_size.y = limit(s.y, world_size.y - 2, 1);
+        view_size.x = limit(s.x, world_size.x - 2, 1);
+        view_move(view_pos);
+        view_reset();
+    }
+
+    /**
+     * @brief Gets the view size.
+     * @param v
+     */
+    point_t get_view_size(void) { return view_size; }
 
     /**
      * @brief Toggles the value of the cell highlighted by the cursor.
@@ -786,11 +792,23 @@ class World {
     }
 
     /**
+     * @brief Sets the position of the cursor.
+     * @param pos The new position of the cursor.
+     */
+    void set_cursor_pos(point_t pos) {
+        pos.y = limit(pos.y, view_size.y - 2, 1);
+        pos.x = limit(pos.x, view_size.x - 2, 1);
+        view->set_user_cursor_pos(pos);
+        view->refresh_info();
+        view->refresh_view();
+    }
+
+    /**
      * @brief Moves the cursor up.
      */
     void cursor_move_up() {
         set_cursor_pos(
-            {static_cast<int16_t>(view->get_pos_cursor_user().y + 1),
+            {static_cast<int16_t>(view->get_pos_cursor_user().y - 1),
              view->get_pos_cursor_user().x});
     }
 
@@ -799,7 +817,7 @@ class World {
      */
     void cursor_move_down() {
         set_cursor_pos(
-            {static_cast<int16_t>(view->get_pos_cursor_user().y - 1),
+            {static_cast<int16_t>(view->get_pos_cursor_user().y + 1),
              view->get_pos_cursor_user().x});
     }
 
@@ -1148,6 +1166,20 @@ void cbi_parameter_view(World &world) {
 }
 
 /**
+ * @brief Sets the number of generations.
+ * @param world The world object.
+ */
+void cbi_parameter_size(World &world) {
+    uint32_t y = 0;
+    uint32_t x = 0;
+    uint32_t *arr[3] = {&y, &x, NULL};
+
+    input_get_int(arr);
+    world.set_view_size(
+        {static_cast<int16_t>(y), static_cast<int16_t>(x)});
+}
+
+/**
  * @brief Infest submenu.
  * @param world The world object.
  */
@@ -1198,6 +1230,7 @@ void cbi_parameter(World &world) {
             {'i', cbi_parameter_infest},
             {'v', cbi_parameter_view},
             {'r', cbi_parameter_refresh_rate},
+            {'s', cbi_parameter_size},
         };
 
     if (map_callback.find(c) != map_callback.end()) {
@@ -1210,6 +1243,12 @@ void cbi_parameter(World &world) {
  * @param world The world object.
  */
 void cbi_print_help(World &world) {
+    point_t p = world.get_view_size();
+    point_t v = world.get_pos_cursor_view();
+    world.set_view_size(
+        {1, 1});  // make the view small to make room for the help.
+    while (std::cin.get() != '\n')  // ignore all inputs after <h>.
+        ;
     std::cout << "See the list below for all options, input is "
                  "parsed after each <enter>."
               << std::endl;
@@ -1248,7 +1287,7 @@ void cbi_print_help(World &world) {
     std::cout << "\t <v>[num] \t\t randomly infest the world with "
                  "[num] amount of cells."
               << std::endl;
-    std::cout << "<p><c/i/v/r> \t\t\t parameter sub-menu."
+    std::cout << "<p><c/i/v/r/s> \t\t\t parameter sub-menu."
               << std::endl;
     std::cout << "\t <c><a/d/b> \t\t cell sub-menu." << std::endl;
     std::cout << "\t\t <a>[char] \t set alive cell representation to "
@@ -1261,10 +1300,10 @@ void cbi_print_help(World &world) {
                  "to [char]."
               << std::endl;
     std::cout << "\t <i><v/w> \t\t infest sub-menu." << std::endl;
-    std::cout << "\t\t <v>[num] \t\t set default infest cell count "
+    std::cout << "\t\t <v>[num] \t set default infest cell count "
                  "to [num], view, see <i><v>."
               << std::endl;
-    std::cout << "\t\t <w>[num] \t\t set default infest cell count "
+    std::cout << "\t\t <w>[num] \t set default infest cell count "
                  "to [num], world, see <i><w>."
               << std::endl;
     std::cout << "\t <v><y/x> \t\t view sub-menu" << std::endl;
@@ -1277,6 +1316,14 @@ void cbi_print_help(World &world) {
     std::cout << "\t <r>[num] \t\t set the refresh rate to [num] "
                  "milliseconds, example 'pr100'."
               << std::endl;
+    std::cout << "\t <s>[num1];[num2] \t set view size to y = "
+                 "num1, x = num2."
+              << std::endl;
+    std::cout << "Press <enter> to continue..." << std::endl;
+    while (std::cin.get() != '\n')  // wait for <enter>
+        ;
+    world.set_view_size(p);  // reset the view to initial size.
+    world.set_cursor_pos(v);
 }
 
 /**
@@ -1350,7 +1397,7 @@ void loop_input(World &world) {
 
 /**
  * @brief The main function.
- * @return 1 on success.
+ * @return 0 on success.
  */
 int main() {
     const point_t WORLD_SIZE = {1000, 1000};
@@ -1361,5 +1408,5 @@ int main() {
     loop_input(world);
     thread_world.join();
 
-    return 1;
+    return 0;
 }

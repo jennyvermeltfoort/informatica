@@ -368,7 +368,7 @@ class World {
     uint16_t refresh_rate = 1000;
 
     /**
-     * @struct WORLD_STORAGE_T
+     * @struct WORLD_INTERFACE_T
      * @brief The world is made up of cells. It consists of two
      * matrices, one which contains all the boolean values of all
      * cells, and one which contains all the char values of all cells.
@@ -377,14 +377,14 @@ class World {
      * size of one matrix (world_size.y * world_size.x).
      */
 #pragma pack(1)
-    typedef struct WORLD_STORAGE_T {
+    typedef struct WORLD_INTERFACE_T {
         uint8_t *alive;
         uint8_t *value;
-    } world_storage_t;
+    } world_interace_t;
 #pragma pack()
 
     uint8_t *world_flat;
-    world_storage_t *world;
+    world_interace_t world;
     point_t world_size;
 
     uint8_t **events;
@@ -458,7 +458,7 @@ class World {
         view_pos.y = limit(p.y, world_size.y - view_size.y, 0);
         view_pos.x = limit(p.x, world_size.x - view_size.x, 0);
         view->set_view_parameters(
-            &world->value[view_pos.y * world_size.x + view_pos.x],
+            &world.value[view_pos.y * world_size.x + view_pos.x],
             view_size, world_size.x);
         set_cursor_pos(view->get_pos_cursor_user());
     }
@@ -481,7 +481,7 @@ class World {
     void world_init(void) {
         const std::lock_guard<std::mutex> lock(mutex_world);
         point_t i;
-        uint8_t *cell_ptr = &world->alive[0];
+        uint8_t *cell_ptr = &world.alive[0];
 
         for (i.y = 0; i.y < world_size.y; i.y++) {
             for (i.x = 0; i.x < world_size.x; i.x++) {
@@ -532,7 +532,7 @@ class World {
         const std::lock_guard<std::mutex> lock(mutex_world);
         static const uint16_t limit_y = world_size.y - 2;
         static const uint16_t limit_x = world_size.x - 2;
-        uint8_t *cell_ptr = &world->alive[1 * world_size.x + 1];
+        uint8_t *cell_ptr = &world.alive[1 * world_size.x + 1];
         uint8_t count;
         uint16_t x;
         uint16_t y;
@@ -552,7 +552,8 @@ class World {
 
                 if ((*cell_ptr && count != 2 && count != 3) ||
                     (!*cell_ptr && count == 3)) {
-                    event_add(cell_ptr);
+                    event_add(cell_ptr);  // an event toggles the
+                                          // cell' value.
                 }
                 cell_ptr++;
             }
@@ -574,7 +575,6 @@ class World {
 
         pos.y = limit(pos.y, world_size.y - view_size.y, 0);
         pos.x = limit(pos.x, world_size.x - view_size.x, 0);
-
         limit_y = pos.y + size.y;
         limit_x = pos.x + size.x;
 
@@ -582,7 +582,7 @@ class World {
 
         for (i.y = pos.y; i.y < limit_y; i.y++) {
             uint8_t *cell_ptr =
-                &world->alive[i.y * world_size.x + pos.x];
+                &world.alive[i.y * world_size.x + pos.x];
             for (i.x = pos.x; i.x < limit_x; i.x++) {
                 if (*cell_ptr) {
                     world_set_cell(cell_ptr, false);
@@ -616,8 +616,8 @@ class World {
                 static_cast<int16_t>(random_gen() % size.y + pos.y),
                 static_cast<int16_t>(random_gen() % size.x + pos.x),
             };
-            world_set_cell(&world->alive[p.y * world_size.x + p.x],
-                           !world->alive[p.y * world_size.x + p.x]);
+            world_set_cell(&world.alive[p.y * world_size.x + p.x],
+                           !world.alive[p.y * world_size.x + p.x]);
         }
 
         view->refresh_view();
@@ -635,11 +635,11 @@ class World {
         uint64_t event_size = world_size.x * world_size.y;
 
         world_flat = new uint8_t[world_flat_size];
-        world = new world_storage_t;
-
-        world->alive = reinterpret_cast<uint8_t *>(&world_flat[0]);
-        world->value = reinterpret_cast<uint8_t *>(
-            &world_flat[world_size.y * world_size.x]);
+        world = {
+            .alive = reinterpret_cast<uint8_t *>(&world_flat[0]),
+            .value = reinterpret_cast<uint8_t *>(
+                &world_flat[world_size.y * world_size.x]),
+        };
 
         view_step_size = {view_size.y, view_size.x};
         view_pos = {
@@ -647,7 +647,7 @@ class World {
             static_cast<int16_t>(world_size.x / 2 - view_size.x / 2),
         };
         view = new View(
-            &world->value[view_pos.y * world_size.x + view_pos.x],
+            &world.value[view_pos.y * world_size.x + view_pos.x],
             view_size, world_size.x - 1);
         view->set_print_callback(std::bind(&World::print_info, this));
 
@@ -660,7 +660,6 @@ class World {
      */
     ~World() {
         delete[] world_flat;
-        delete world;
         delete[] events;
         delete view;
     }
@@ -758,8 +757,8 @@ class World {
         const std::lock_guard<std::mutex> lock(mutex_world);
         const point_t cursor = get_pos_cursor_world();
         world_set_cell(
-            &world->alive[cursor.y * world_size.x + cursor.x],
-            !world->alive[cursor.y * world_size.x + cursor.x]);
+            &world.alive[cursor.y * world_size.x + cursor.x],
+            !world.alive[cursor.y * world_size.x + cursor.x]);
         view->refresh_view();
     }
 
@@ -896,7 +895,7 @@ class World {
      */
     void world_set_cell(point_t p, uint8_t value) {
         if (p.x < world_size.x && p.y < world_size.y) {
-            world_set_cell(&world->alive[p.y * world_size.x + p.x],
+            world_set_cell(&world.alive[p.y * world_size.x + p.x],
                            value);
         }
     }
@@ -909,7 +908,7 @@ class World {
      */
     const uint8_t *world_get_cell(point_t p) {
         if (p.x < world_size.x && p.y < world_size.y) {
-            return &world->alive[p.y * world_size.x + p.x];
+            return &world.alive[p.y * world_size.x + p.x];
         }
         return NULL;
     }

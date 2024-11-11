@@ -1,0 +1,256 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global}
+    \entry{denningComputerScienceScience2005}{article}{}
+      \name{author}{1}{}{%
+        {{hash=39ea4644b02c4158a89fd649836260b8}{%
+           family={Denning},
+           familyi={D\bibinitperiod},
+           given={Peter},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{39ea4644b02c4158a89fd649836260b8}
+      \strng{fullhash}{39ea4644b02c4158a89fd649836260b8}
+      \strng{bibnamehash}{39ea4644b02c4158a89fd649836260b8}
+      \strng{authorbibnamehash}{39ea4644b02c4158a89fd649836260b8}
+      \strng{authornamehash}{39ea4644b02c4158a89fd649836260b8}
+      \strng{authorfullhash}{39ea4644b02c4158a89fd649836260b8}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{day}{1}
+      \field{journaltitle}{Commun. ACM}
+      \field{month}{4}
+      \field{number}{4}
+      \field{shortjournal}{Commun. ACM}
+      \field{title}{Is Computer Science Science?}
+      \field{volume}{48}
+      \field{year}{2005}
+      \field{dateera}{ce}
+      \field{pages}{27\bibrangedash 31}
+      \range{pages}{5}
+    \endentry
+    \entry{krebsbachComputerScienceNot2015}{inproceedings}{}
+      \name{author}{1}{}{%
+        {{hash=7a102df2395b48740ee65bf3f81b12ba}{%
+           family={Krebsbach},
+           familyi={K\bibinitperiod},
+           given={Kurt\bibnamedelima D.},
+           giveni={K\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Appleton}%
+      }
+      \list{publisher}{1}{%
+        {Lawrence University}%
+      }
+      \strng{namehash}{7a102df2395b48740ee65bf3f81b12ba}
+      \strng{fullhash}{7a102df2395b48740ee65bf3f81b12ba}
+      \strng{bibnamehash}{7a102df2395b48740ee65bf3f81b12ba}
+      \strng{authorbibnamehash}{7a102df2395b48740ee65bf3f81b12ba}
+      \strng{authornamehash}{7a102df2395b48740ee65bf3f81b12ba}
+      \strng{authorfullhash}{7a102df2395b48740ee65bf3f81b12ba}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{title}{Computer {{Science}}: {{Not}} about {{Computers}}, {{Not Science}}}
+      \field{year}{2015}
+      \field{dateera}{ce}
+    \endentry
+    \entry{leisersonTherePlentyRoom2020}{article}{}
+      \name{author}{7}{}{%
+        {{hash=a389dea91a76366c4b4af5f52a928a76}{%
+           family={Leiserson},
+           familyi={L\bibinitperiod},
+           given={Charles\bibnamedelima E.},
+           giveni={C\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+        {{hash=8127cb72444c8d7f950ec61d2e145025}{%
+           family={Thompson},
+           familyi={T\bibinitperiod},
+           given={Neil\bibnamedelima C.},
+           giveni={N\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=914e65be5d46573e29e4fd406d9f8f84}{%
+           family={Emer},
+           familyi={E\bibinitperiod},
+           given={Joel\bibnamedelima S.},
+           giveni={J\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=9b78801b62b0c1adb96fc9f93451db20}{%
+           family={Kuszmaul},
+           familyi={K\bibinitperiod},
+           given={Bradley\bibnamedelima C.},
+           giveni={B\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=93b1ee674cf24773457bc277e59abfb0}{%
+           family={Lampson},
+           familyi={L\bibinitperiod},
+           given={Butler\bibnamedelima W.},
+           giveni={B\bibinitperiod\bibinitdelim W\bibinitperiod}}}%
+        {{hash=a2ed106e416f44d8040313df2708f6a9}{%
+           family={Sanchez},
+           familyi={S\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod}}}%
+        {{hash=8c8238f2d6f240fb465fc4dad5741c39}{%
+           family={Schardl},
+           familyi={S\bibinitperiod},
+           given={Tao\bibnamedelima B.},
+           giveni={T\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Washington}%
+      }
+      \strng{namehash}{67880a4cddffb6bff8172e4b002e5c20}
+      \strng{fullhash}{e134e319d5303d42a5dfa80bed9aede6}
+      \strng{bibnamehash}{67880a4cddffb6bff8172e4b002e5c20}
+      \strng{authorbibnamehash}{67880a4cddffb6bff8172e4b002e5c20}
+      \strng{authornamehash}{67880a4cddffb6bff8172e4b002e5c20}
+      \strng{authorfullhash}{e134e319d5303d42a5dfa80bed9aede6}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{From bottom to top The doubling of the number of transistors on a chip every 2 years, a seemly inevitable trend that has been called Moore's law, has contributed immensely to improvements in computer performance. However, silicon-based transistors cannot get much smaller than they are today, and other approaches should be explored to keep performance growing. Leiserson et al. review recent examples and argue that the most promising place to look is at the top of the computing stack, where improvements in software, algorithms, and hardware architecture can bring the much-needed boost. Science , this issue p. eaam9744 BACKGROUND Improvements in computing power can claim a large share of the credit for many of the things that we take for granted in our modern lives: cellphones that are more powerful than room-sized computers from 25 years ago, internet access for nearly half the world, and drug discoveries enabled by powerful supercomputers. Society has come to rely on computers whose performance increases exponentially over time. Much of the improvement in computer performance comes from decades of miniaturization of computer components, a trend that was foreseen by the Nobel Prize–winning physicist Richard Feynman in his 1959 address, “There’s Plenty of Room at the Bottom,” to the American Physical Society. In 1975, Intel founder Gordon Moore predicted the regularity of this miniaturization trend, now called Moore’s law, which, until recently, doubled the number of transistors on computer chips every 2 years. Unfortunately, semiconductor miniaturization is running out of steam as a viable way to grow computer performance—there isn’t much more room at the “Bottom.” If growth in computing power stalls, practically all industries will face challenges to their productivity. Nevertheless, opportunities for growth in computing performance will still be available, especially at the “Top” of the computing-technology stack: software, algorithms, and hardware architecture. ADVANCES Software can be made more efficient by performance engineering: restructuring software to make it run faster. Performance engineering can remove inefficiencies in programs, known as software bloat, arising from traditional software-development strategies that aim to minimize an application’s development time rather than the time it takes to run. Performance engineering can also tailor software to the hardware on which it runs, for example, to take advantage of parallel processors and vector units. Algorithms offer more-efficient ways to solve problems. Indeed, since the late 1970s, the time to solve the maximum-flow problem improved nearly as much from algorithmic advances as from hardware speedups. But progress on a given algorithmic problem occurs unevenly and sporadically and must ultimately face diminishing returns. As such, we see the biggest benefits coming from algorithms for new problem domains (e.g., machine learning) and from developing new theoretical machine models that better reflect emerging hardware. Hardware architectures can be streamlined—for instance, through processor simplification, where a complex processing core is replaced with a simpler core that requires fewer transistors. The freed-up transistor budget can then be redeployed in other ways—for example, by increasing the number of processor cores running in parallel, which can lead to large efficiency gains for problems that can exploit parallelism. Another form of streamlining is domain specialization, where hardware is customized for a particular application domain. This type of specialization jettisons processor functionality that is not needed for the domain. It can also allow more customization to the specific characteristics of the domain, for instance, by decreasing floating-point precision for machine-learning applications. In the post-Moore era, performance improvements from software, algorithms, and hardware architecture will increasingly require concurrent changes across other levels of the stack. These changes will be easier to implement, from engineering-management and economic points of view, if they occur within big system components: reusable software with typically more than a million lines of code or hardware of comparable complexity. When a single organization or company controls a big component, modularity can be more easily reengineered to obtain performance gains. Moreover, costs and benefits can be pooled so that important but costly changes in one part of the big component can be justified by benefits elsewhere in the same component. OUTLOOK As miniaturization wanes, the silicon-fabrication improvements at the Bottom will no longer provide the predictable, broad-based gains in computer performance that society has enjoyed for more than 50 years. Software performance engineering, development of algorithms, and hardware streamlining at the Top can continue to make computer applications faster in the post-Moore era. Unlike the historical gains at the Bottom, however, gains at the Top will be opportunistic, uneven, and sporadic. Moreover, they will be subject to diminishing returns as specific computations become better explored. Performance gains after Moore’s law ends. In the post-Moore era, improvements in computing power will increasingly come from technologies at the “Top” of the computing stack, not from those at the “Bottom”, reversing the historical trend. CREDIT: N. CARY/ SCIENCE The miniaturization of semiconductor transistors has driven the growth in computer performance for more than 50 years. As miniaturization approaches its limits, bringing an end to Moore’s law, performance gains will need to come from software, algorithms, and hardware. We refer to these technologies as the “Top” of the computing stack to distinguish them from the traditional technologies at the “Bottom”: semiconductor physics and silicon-fabrication technology. In the post-Moore era, the Top will provide substantial performance gains, but these gains will be opportunistic, uneven, and sporadic, and they will suffer from the law of diminishing returns. Big system components offer a promising context for tackling the challenges of working at the Top.}
+      \field{issn}{0036-8075}
+      \field{number}{6495}
+      \field{title}{There’s Plenty of Room at the {{Top}}: {{What}} Will Drive Computer Performance after {{Moore}}’s Law?}
+      \field{volume}{368}
+      \field{year}{2020}
+      \field{dateera}{ce}
+      \keyw{Algorithms,Bloat,Company structure,Complexity,Computation,Computer applications,Computer architecture,Computer components,Computer Oriented Programs,Computer programs,Computer simulation,Computer Software,Cost benefit analysis,Domains,Engineering,Fabrication,Floating point arithmetic,Hardware,Integrated circuits,Learning algorithms,Machine learning,Manufacturing,Microprocessors,Miniaturization,Modularity,Moore's law,Performance engineering,Processing speed,Reengineering,Reusable components,Semiconductor devices,Silicon,Software,Software development,Software engineering,Specialization,Steam,Streamlining,Supercomputers,Technology,Transistors}
+    \endentry
+    \entry{schallerMooreLawPresent1997}{article}{}
+      \name{author}{1}{}{%
+        {{hash=12ba1b8494409bd6845e10373901e225}{%
+           family={Schaller},
+           familyi={S\bibinitperiod},
+           given={R.R.},
+           giveni={R\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY}%
+      }
+      \strng{namehash}{12ba1b8494409bd6845e10373901e225}
+      \strng{fullhash}{12ba1b8494409bd6845e10373901e225}
+      \strng{bibnamehash}{12ba1b8494409bd6845e10373901e225}
+      \strng{authorbibnamehash}{12ba1b8494409bd6845e10373901e225}
+      \strng{authornamehash}{12ba1b8494409bd6845e10373901e225}
+      \strng{authorfullhash}{12ba1b8494409bd6845e10373901e225}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{A simple observation, made over 30 years ago, on the growth in the number of devices per silicon die has become the central driving force of one of the most dynamic of the world's industries. Because of the accuracy with which Moore's Law has predicted past growth in IC complexity, it is viewed as a reliable method of calculating future trends as well, setting the pace of innovation, and defining the rules and the very nature of competition. And since the semiconductor portion of electronic consumer products keeps growing by leaps and bounds, the Law has aroused in users and consumers an expectation of a continuous stream of faster, better, and cheaper high-technology products. Even the policy implications of Moore's Law are significant: it is used as the baseline assumption in the industry's strategic road map for the next decade and a half.}
+      \field{issn}{0018-9235}
+      \field{journaltitle}{SPEC}
+      \field{number}{6}
+      \field{shortjournal}{SPEC}
+      \field{title}{Moore's Law: Past, Present and Future}
+      \field{volume}{34}
+      \field{year}{1997}
+      \field{dateera}{ce}
+      \field{pages}{52\bibrangedash 59}
+      \range{pages}{8}
+      \keyw{Applied sciences,Consumer products,Electronics,Exact sciences and technology,General (including economical and industrial fields),Integrated circuits,Inventions,Inventors,Moore's Law,Roads,Semiconductors,Silicon,Technological innovation,Theory}
+    \endentry
+    \entry{baconBaconNewOrganon}{incollection}{}
+      \name{author}{1}{}{%
+        {{hash=e1a7ba315ef02a2cd32744aa961852ba}{%
+           family={Bacon},
+           familyi={B\bibinitperiod},
+           given={Fransis},
+           giveni={F\bibinitperiod}}}%
+      }
+      \name{translator}{2}{}{%
+        {{hash=eff21a433c95a45319e1650776b209bb}{%
+           family={Ariew},
+           familyi={A\bibinitperiod},
+           given={Roger},
+           giveni={R\bibinitperiod}}}%
+        {{hash=9f5f16da879bb16dfb96a8135b7045af}{%
+           family={Watkins},
+           familyi={W\bibinitperiod},
+           given={Eric},
+           giveni={E\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Indianapolis}%
+      }
+      \list{publisher}{1}{%
+        {Hackett Publisching Company, Inc.}%
+      }
+      \strng{namehash}{e1a7ba315ef02a2cd32744aa961852ba}
+      \strng{fullhash}{e1a7ba315ef02a2cd32744aa961852ba}
+      \strng{bibnamehash}{e1a7ba315ef02a2cd32744aa961852ba}
+      \strng{authorbibnamehash}{e1a7ba315ef02a2cd32744aa961852ba}
+      \strng{authornamehash}{e1a7ba315ef02a2cd32744aa961852ba}
+      \strng{authorfullhash}{e1a7ba315ef02a2cd32744aa961852ba}
+      \strng{translatorbibnamehash}{35ecc2cf0c2cb3c52b2407757e2633d1}
+      \strng{translatornamehash}{35ecc2cf0c2cb3c52b2407757e2633d1}
+      \strng{translatorfullhash}{35ecc2cf0c2cb3c52b2407757e2633d1}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Modern {{Philosophy}}: An Anthology of Primary Sources}
+      \field{edition}{3}
+      \field{title}{Bacon, {{New Organon I}}, {{Aphorisms}} 1-3, 11-31, and 36-46}
+      \field{pages}{16\bibrangedash 20}
+      \range{pages}{5}
+    \endentry
+    \entry{wirthPleaLeanSoftware1995}{article}{}
+      \name{author}{1}{}{%
+        {{hash=7f7aa633cbf63c5b9fb436e4c03d4ec2}{%
+           family={Wirth},
+           familyi={W\bibinitperiod},
+           given={N.},
+           giveni={N\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York}%
+      }
+      \strng{namehash}{7f7aa633cbf63c5b9fb436e4c03d4ec2}
+      \strng{fullhash}{7f7aa633cbf63c5b9fb436e4c03d4ec2}
+      \strng{bibnamehash}{7f7aa633cbf63c5b9fb436e4c03d4ec2}
+      \strng{authorbibnamehash}{7f7aa633cbf63c5b9fb436e4c03d4ec2}
+      \strng{authornamehash}{7f7aa633cbf63c5b9fb436e4c03d4ec2}
+      \strng{authorfullhash}{7f7aa633cbf63c5b9fb436e4c03d4ec2}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Software's girth has surpassed its functionality, largely because hardware advances make this possible. The way to streamline software lies in disciplined methodologies and a return to the essentials. The paper discusses some causes of "fat software" and considers the Oberon system whose primary goal was to show that software can be developed with a fraction of the memory capacity and processor power usually required, without sacrificing flexibility, functionality, or user convenience.{$<$} {$>$}}
+      \field{issn}{0018-9162}
+      \field{journaltitle}{Computer}
+      \field{number}{2}
+      \field{shortjournal}{MC}
+      \field{title}{A Plea for Lean Software}
+      \field{volume}{28}
+      \field{year}{1995}
+      \field{dateera}{ce}
+      \field{pages}{64\bibrangedash 68}
+      \range{pages}{5}
+      \keyw{Computer displays,Computer programming,Explosions,Hardware,Memory management,Operating systems,Program processors,Software,Software performance,Solids,Space technology,Workstations}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

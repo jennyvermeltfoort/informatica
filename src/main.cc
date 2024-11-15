@@ -372,7 +372,7 @@ class World {
      * @brief The world is made up of cells. It consists of two
      * matrices, one which contains all the boolean values of all
      * cells, and one which contains all the char values of all cells.
-     * The struct is packed to a singel byte, thus the distance
+     * The struct is packed to a single byte, thus the distance
      * between the boolean value and the char value of a cell is the
      * size of one matrix (world_size.y * world_size.x).
      */
@@ -403,7 +403,8 @@ class World {
 
     /**
      * @brief Retrieves the value pointer that relates to the given
-     * bool pointer.
+     * bool pointer.git pull
+     * 
      * @param ptr The bool pointer.
      * @return The value pointer.
      */
@@ -573,8 +574,8 @@ class World {
         uint16_t limit_x;
         point_t i = {};
 
-        pos.y = limit(pos.y, world_size.y - view_size.y, 0);
-        pos.x = limit(pos.x, world_size.x - view_size.x, 0);
+        pos.y = limit(pos.y, world_size.y - size.y, 0);
+        pos.x = limit(pos.x, world_size.x - size.x, 0);
         limit_y = pos.y + size.y;
         limit_x = pos.x + size.x;
 
@@ -1325,42 +1326,56 @@ void cbi_print_help(World &world) {
     world.set_cursor_pos(v);
 }
 
-/**
- * @brief Loads a glider gun pattern into the world from file.
- * @param world The world object.
- */
-void cbi_glider_gun(World &world) {
-    const point_t w = world.get_pos_cursor_world();
-    std::fstream fs;
-    point_t p = w;
+class Execute {
+   public:
+    void execute(std::fstream &fs);
+};
 
-    fs.open("glidergun.txt", std::fstream::in);
+void file_proc(std::string file_name, Execute e) {
+    std::fstream fs;
+
+    fs.open(file_name, std::fstream::in);
     if (!fs.is_open()) {
-        std::cout << "Failed to open ./glidergun.txt, make sure "
+        std::cout << "Failed to open " << file_name
+                  << ", make sure "
                      "it exists! "
                   << std::endl;
         return;
     }
 
-    do {
-        const uint8_t *value = world.world_get_cell(p);
-        char c = fs.get();
-        if (value == NULL) {
-            break;
-        }
+    e.execute(fs);
 
-        if (c == ' ' && *value == true) {
-            world.world_set_cell(p, false);
-        } else if (c == 'x' && *value == false) {
-            world.world_set_cell(p, true);
-        } else if (c == '\n') {
-            p.y++;
-            p.x = w.x - 1;
-        }
-        p.x++;
-    } while (!fs.eof());
+    fs.close();
+}
 
-    world.view_reset();
+/**
+ * @brief Loads a glider gun pattern into the world from file.
+ * @param world The world object.
+ */
+void cbi_glider_gun(World &world) {
+    file_proc("glidergun.txt", [&world](std::fstream &fs) {
+        const point_t w = world.get_pos_cursor_world();
+        point_t p = w;
+        do {
+            const uint8_t *value = world.world_get_cell(p);
+            char c = fs.get();
+            if (value == NULL) {
+                break;
+            }
+
+            if (c == ' ' && *value == true) {
+                world.world_set_cell(p, false);
+            } else if (c == 'x' && *value == false) {
+                world.world_set_cell(p, true);
+            } else if (c == '\n') {
+                p.y++;
+                p.x = w.x - 1;
+            }
+            p.x++;
+        } while (!fs.eof());
+
+        world.view_reset();
+    });
 }
 
 /**

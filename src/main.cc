@@ -14,11 +14,11 @@ const char DEFAULT_CELL_ALIVE_C = '&';
 const char DEFAULT_CELL_DEAD_C = ' ';
 const char DEFAULT_CELL_BORDER_C = '@';
 const uint16_t DEFAULT_REFRESH_RATE = 1000;
-const uint16_t INTRO_DURATION_S = 5;
+const uint16_t INTRO_DURATION_S = 1;
 const uint16_t WORLD_SIZE_Y = 1000;
 const uint16_t WORLD_SIZE_X = 1000;
-const uint16_t VIEW_SIZE_Y = 40;
-const uint16_t VIEW_SIZE_X = 150;
+const uint16_t VIEW_SIZE_Y = 20;
+const uint16_t VIEW_SIZE_X = 100;
 
 typedef char view_storage_t[VIEW_SIZE_Y][VIEW_SIZE_X];
 typedef bool world_storage_t[WORLD_SIZE_Y][WORLD_SIZE_X];
@@ -469,6 +469,25 @@ class World {
         events_process();
     }
 
+    void fill(const point_t pos, const point_t size) {
+        const std::lock_guard<std::mutex> lock(mutex_world_update);
+        point_t i = {};
+        point_t p = transform_pos_view_boundaries(pos);
+
+        events.clear();
+
+        for (i.y = p.y; i.y < p.y + size.y; i.y++) {
+            for (i.x = p.x; i.x < p.x + size.x; i.x++) {
+                events.push_back(event_t{i, true});
+            }
+        }
+
+        events_process();
+    }
+    void fill_world(void) {
+        fill(world_start_pos, world_size_life);
+    }
+
     void clear_world(void) {
         clear(world_start_pos, world_size_life);
     }
@@ -530,9 +549,20 @@ class World {
         while (!flag_stop) {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(refresh_rate));
+                fill_world();
+            view.refresh_view();
+            auto strt = std::chrono::high_resolution_clock::now();
             update_world();
             view.refresh_view();
             view.refresh_info();
+
+            auto stp = std::chrono::high_resolution_clock::now();
+            auto duration =
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    stp - strt);
+            std::cout << std::endl << "Time taken by function: "
+                      <<  duration.count() << " microseconds"
+                      << std::endl;
         }
     }
 

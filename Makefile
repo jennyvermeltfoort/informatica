@@ -1,14 +1,13 @@
 # tested with: g++-11
-CC 		= g++
-CFLAGS  = -Wall -std=c++11
+CC 		= gcc
+CFLAGS  = -Wall -g
 SRC 	= src
-TARGET 	= $(SRC)/main.cc 
+TARGET 	= main
 
-main: $(TARGET)
-	$(CC) $(CFLAGS) -o main.o $(TARGET)
-	$(CC) $(CFLAGS) -S $(TARGET)
+bla: $(TARGET)
+	$(CC) $(CFLAGS) -o $(TARGET) src/main.c
 
-all: main
+all: bla
 
 clean:
 	$(RM) $(TARGET)

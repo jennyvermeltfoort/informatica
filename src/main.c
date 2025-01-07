@@ -4,11 +4,14 @@
 #include "stdint.h"
 #include "stdio.h"
 
+#define SIZE_WORLD_X_CONF 2  // actual size = val * sizeof(segment_t)
+#define SIZE_WORLD_Y_CONF 2  // actual size = val * GEN_CHUNK_SIZE
+
 #define SIZE_SEGMENT (sizeof(segment_t) * 8)
 #define SIZE_BIT_MAP 9
-#define SIZE_WORLD_X 2  // actual size = val * sizeof(segment_t)
-#define SIZE_WORLD_Y 20
-#define SIZE_WORLD SIZE_WORLD_X* SIZE_WORLD_Y
+#define GEN_CHUNK_SIZE 8
+#define SIZE_WORLD_Y SIZE_WORLD_Y_CONF* GEN_CHUNK_SIZE
+#define SIZE_WORLD SIZE_WORLD_X_CONF* SIZE_WORLD_Y
 
 typedef uint32_t segment_t;
 
@@ -64,10 +67,11 @@ cell_value_t bitmap_translator[1 << 9];
 
 inline uint8_t get_index(const cell_segment_rw_t rw, const uint16_t x,
                          const uint16_t y) {
-    uint8_t oob =
-        (y >= SIZE_WORLD_Y) || (x / SIZE_SEGMENT >= SIZE_WORLD_X);
-    uint8_t index = (SIZE_WORLD_X * y + x / SIZE_SEGMENT) * !oob +
-                    SIZE_WORLD * oob + rw * oob;
+    uint8_t oob = (y >= SIZE_WORLD_Y) ||
+                  (x / SIZE_SEGMENT >= SIZE_WORLD_X_CONF);
+    uint8_t index =
+        (SIZE_WORLD_X_CONF * y + x / SIZE_SEGMENT) * !oob +
+        SIZE_WORLD * oob + rw * oob;
     return index;
 }
 
@@ -84,8 +88,8 @@ inline void set_cell_segment(segment_t* const buf,
 }
 
 inline void set_cell_chunk(segment_t* const buf,
-                           segment_chunk_t chunk, const uint16_t x,
-                           const uint16_t y) {
+                           const segment_chunk_t chunk,
+                           const uint16_t x, const uint16_t y) {
     buf[get_index(cell_segment_write, x, y + 0)] = chunk[0];
     buf[get_index(cell_segment_write, x, y + 1)] = chunk[1];
     buf[get_index(cell_segment_write, x, y + 2)] = chunk[2];
@@ -135,7 +139,7 @@ void generate_segment_format(const char alive, const char dead) {
 
 void generate_newline_table(void) {
     for (uint8_t i = 1; i < SIZE_WORLD; i++) {
-        newline_table[i] = (i % SIZE_WORLD_X) ? '\0' : '\n';
+        newline_table[i] = (i % SIZE_WORLD_X_CONF) ? '\0' : '\n';
     }
 }
 
@@ -314,11 +318,11 @@ void generate_iteration(void) {
     world = world_buffer;
     world_buffer = buf;
 
-    for (uint8_t y = 0; y < SIZE_WORLD_Y; y += 8) {
-        for (uint8_t x = 0; x < SIZE_WORLD_X; x++) {
+    for (uint8_t y = 0; y < SIZE_WORLD_Y_CONF; y++) {
+        for (uint8_t x = 0; x < SIZE_WORLD_X_CONF; x++) {
             segment_chunk_t chunk = {};
-            generate_segment(world_buffer, chunk, x, y);
-            set_cell_chunk(world, chunk, x, y);
+            generate_segment(world_buffer, chunk, x, y * 2);
+            set_cell_chunk(world, chunk, x, y * 2);
         }
     }
 }

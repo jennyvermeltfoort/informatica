@@ -8,7 +8,7 @@
 #define SIZE_WORLD_Y 20
 #define SIZE_WORLD SIZE_WORLD_X* SIZE_WORLD_Y
 
-typedef uint32_t segment_t;
+typedef uint64_t segment_t;
 
 typedef enum {
     cell_segment_read = 0,

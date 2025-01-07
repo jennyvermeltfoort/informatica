@@ -5,13 +5,19 @@
 #include "stdio.h"
 
 #define SIZE_WORLD_X_CONF 2  // actual size = val * sizeof(segment_t)
-#define SIZE_WORLD_Y_CONF 2  // actual size = val * GEN_CHUNK_SIZE
+#define SIZE_WORLD_Y_CONF 8  // actual size = val * GEN_CHUNK_SIZE
+
+#define SCREEN_SIZE_X 2
+#define SCREEN_SIZE_Y 16
+#define SCREEN_SIZE SCREEN_SIZE_X* SCREEN_SIZE_Y
 
 #define SIZE_SEGMENT (sizeof(segment_t) * 8)
 #define SIZE_BIT_MAP 9
 #define GEN_CHUNK_SIZE 8
 #define SIZE_WORLD_Y SIZE_WORLD_Y_CONF* GEN_CHUNK_SIZE
 #define SIZE_WORLD SIZE_WORLD_X_CONF* SIZE_WORLD_Y
+
+#define SEGMENT_FORMAT_SIZE 16
 
 typedef uint32_t segment_t;
 
@@ -53,16 +59,14 @@ const cell_value_t* const cell_rules[] = {
     [cell_value_alive] = alive_cell_rules,
 };
 
-segment_t buffer_1[SIZE_WORLD + 2];  // n + 1 read stub, n + 2 write
-segment_t buffer_2[SIZE_WORLD + 2];  // n + 1 read stub, n + 2 write
+segment_t buffer_1[SIZE_WORLD +
+                   2];  // n + 1 read stub, n + 2 write stub. ZII
+segment_t buffer_2[SIZE_WORLD +
+                   2];  // n + 1 read stub, n + 2 write stub. ZII
 segment_t* world = buffer_1;
 segment_t* world_buffer = buffer_2;
-// stub. ZII
 char newline_table[SIZE_WORLD];
-char segment_format[1 << 8][8];
-// 0 1 2
-// 3 4 5
-// 6 7 8
+char segment_format[1 << SEGMENT_FORMAT_SIZE][8];
 cell_value_t bitmap_translator[1 << 9];
 
 inline uint8_t get_index(const cell_segment_rw_t rw, const uint16_t x,
@@ -110,22 +114,23 @@ void set_cell_value(segment_t* const buf, const cell_value_t value,
 }
 
 void print_world(void) {
-    char buf[SIZE_WORLD * (8 * 4 + 1 + 1)];
+    char buf[SCREEN_SIZE * (8 * 4 + 1 + 1)];
     char* ptr = buf;
-    ptr += sprintf(ptr, "\033[1;1H");
-    for (uint8_t i = 0; i < SIZE_WORLD; i++) {
+
+    ptr += sprintf(ptr, "\033[1;1H");  // cursor pos 1,1
+
+    for (uint16_t i = 0; i < SCREEN_SIZE; i++) {
         segment_t segment = world[i];
-        ptr += sprintf(ptr, "%c%.8s%.8s%.8s%.8s", newline_table[i],
-                       segment_format[(segment)&0XFF],
-                       segment_format[(segment >> 8) & 0XFF],
-                       segment_format[(segment >> 16) & 0XFF],
-                       segment_format[(segment >> 24) & 0XFF]);
+        ptr += sprintf(ptr, "%c%.8s%.8s", newline_table[i],
+                       segment_format[(segment)&0XFFFF],
+                       segment_format[(segment >> 16) & 0XFFFF]);
     }
+
     fwrite(buf, 1, ptr - buf, stdout);
 }
 
 void generate_segment_format(const char alive, const char dead) {
-    for (uint16_t i = 0; i < (1 << 8); i++) {
+    for (uint32_t i = 0; i < (1 << SEGMENT_FORMAT_SIZE); i++) {
         segment_format[i][0] = (i & (1 << 0)) ? alive : dead;
         segment_format[i][1] = (i & (1 << 1)) ? alive : dead;
         segment_format[i][2] = (i & (1 << 2)) ? alive : dead;
@@ -138,8 +143,8 @@ void generate_segment_format(const char alive, const char dead) {
 }
 
 void generate_newline_table(void) {
-    for (uint8_t i = 1; i < SIZE_WORLD; i++) {
-        newline_table[i] = (i % SIZE_WORLD_X_CONF) ? '\0' : '\n';
+    for (uint16_t i = 1; i < SCREEN_SIZE; i++) {
+        newline_table[i] = (i % SCREEN_SIZE_X) ? '\0' : '\n';
     }
 }
 
@@ -329,6 +334,7 @@ void generate_iteration(void) {
 
 int main(void) {
     generate_segment_format('x', '-');
+    printf("test");
     generate_newline_table();
     generate_bitmap_translation_table();
     set_cell_value(world, cell_value_alive, 2, 0);

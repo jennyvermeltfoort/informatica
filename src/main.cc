@@ -587,19 +587,17 @@ class World {
             {static_cast<int16_t>(view_size.y / 2),
              static_cast<int16_t>(view_size.x / 2)});
         reset_view();
+        infest_random_world(0);
 
-        while (!flag_stop) {
-            std::this_thread::sleep_for(
-                std::chrono::milliseconds(refresh_rate));
-
+        for (uint16_t i = 0; i < 10000; i++) {
             if (generations > 0) {
                 if (run_auto == false) {
                     generations--;
                 }
                 world_validate_cells();
                 events_process();
-                view->refresh_view();
-                view->refresh_info();
+                // view->refresh_view();
+                // view->refresh_info();
             }
         }
     }
@@ -934,10 +932,7 @@ void loop_input(World &world) {
 
 int main() {
     World world;
-    std::thread thread_world(&World::run, &world);
-
-    loop_input(world);
-    thread_world.join();
+    world.run();
 
     return 1;
 }

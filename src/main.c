@@ -186,49 +186,49 @@ inline __m256i avx_calc_segments(__m256i top, __m256i mid,
                                  __m256i bot) {
     __m256i acc = avx_msk_lsh(top, 0x7, 0);
     __m256i acc_r = _mm256_add_epi32(_mm256_setzero_si256(), acc);
-    acc = avx_msk_lsh(mid, 0x7, 2);
+    acc = avx_msk_lsh(mid, 0x7, 3);
     acc_r = _mm256_add_epi32(acc_r, acc);
-    acc = avx_msk_lsh(bot, 0x7, 5);
+    acc = avx_msk_lsh(bot, 0x7, 6);
     acc_r = _mm256_add_epi32(acc_r, acc);
     return acc_r;
 }
 
 inline __m256i avx_calc_right_edge_segments(__m256i top, __m256i mid,
                                             __m256i bot,
-                                            __m256i edge_top,
-                                            __m256i edge_mid,
-                                            __m256i edge_bot) {
+                                            __m256i right_top,
+                                            __m256i right_mid,
+                                            __m256i right_bot) {
     __m256i acc = avx_msk_lsh(top, 0x3, 0);
     __m256i acc_r = _mm256_add_epi32(_mm256_setzero_si256(), acc);
-    acc = avx_msk_lsh(edge_top, 0x1, 2);
+    acc = avx_msk_lsh(right_top, 0x1, 2);
     acc_r = _mm256_add_epi32(acc_r, acc);
     acc = avx_msk_lsh(mid, 0x3, 3);
     acc_r = _mm256_add_epi32(acc_r, acc);
-    acc = avx_msk_lsh(edge_mid, 0x1, 5);
+    acc = avx_msk_lsh(right_mid, 0x1, 5);
     acc_r = _mm256_add_epi32(acc_r, acc);
     acc = avx_msk_lsh(bot, 0x3, 6);
     acc_r = _mm256_add_epi32(acc_r, acc);
-    acc = avx_msk_lsh(edge_bot, 0x1, 8);
+    acc = avx_msk_lsh(right_bot, 0x1, 8);
     acc_r = _mm256_add_epi32(acc_r, acc);
     return acc_r;
 }
 
 inline __m256i avx_calc_left_edge_segments(__m256i top, __m256i mid,
                                            __m256i bot,
-                                           __m256i edge_top,
-                                           __m256i edge_mid,
-                                           __m256i edge_bot) {
+                                           __m256i left_top,
+                                           __m256i left_mid,
+                                           __m256i left_bot) {
     __m256i acc = avx_msk_lsh(top, 0x3, 1);
     __m256i acc_r = _mm256_add_epi32(_mm256_setzero_si256(), acc);
     acc = avx_msk_lsh(mid, 0x3, 4);
     acc_r = _mm256_add_epi32(acc_r, acc);
     acc = avx_msk_lsh(bot, 0x3, 7);
     acc_r = _mm256_add_epi32(acc_r, acc);
-    acc = avx_rsh_msk_lsh(edge_top, (SIZE_SEGMENT - 1), 0x1, 0);
+    acc = avx_rsh_msk_lsh(left_top, (SIZE_SEGMENT - 1), 0x1, 0);
     acc_r = _mm256_add_epi32(acc_r, acc);
-    acc = avx_rsh_msk_lsh(edge_mid, (SIZE_SEGMENT - 1), 0x1, 3);
+    acc = avx_rsh_msk_lsh(left_mid, (SIZE_SEGMENT - 1), 0x1, 3);
     acc_r = _mm256_add_epi32(acc_r, acc);
-    acc = avx_rsh_msk_lsh(edge_bot, (SIZE_SEGMENT - 1), 0x1, 6);
+    acc = avx_rsh_msk_lsh(left_bot, (SIZE_SEGMENT - 1), 0x1, 6);
     acc_r = _mm256_add_epi32(acc_r, acc);
     return acc_r;
 }
@@ -412,7 +412,7 @@ int main(void) {
     printf("\033[2J");
     printf("\033[?25l");
 
-    for (uint32_t i = 0; i < 2; i++) {
+    for (uint32_t i = 0; i < 10000; i++) {
         print_world();
         generate_iteration();
     }

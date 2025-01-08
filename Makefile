@@ -1,13 +1,13 @@
 # tested with: g++-11
 CC 		= gcc
-CFLAGS  = -Wall -g
+CFLAGS  = -mavx2 -O5
 SRC 	= src
-TARGET 	= main
+TARGET 	= life
 
-bla: $(TARGET)
-	$(CC) $(CFLAGS) -o $(TARGET) src/main.c
+life: $(TARGET)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)/main.c
 
-all: bla
+all: life
 
 clean:
 	$(RM) $(TARGET)

@@ -5,11 +5,12 @@
 #include "stdio.h"
 #include "time.h"
 
-#define SIZE_WORLD_X_CONF 2  // actual size = val * sizeof(segment_t)
-#define SIZE_WORLD_Y_CONF 3  // actual size = val * GEN_CHUNK_SIZE
+#define SIZE_WORLD_X_CONF \
+    64  // actual size = val * sizeof(segment_t) * 8
+#define SIZE_WORLD_Y_CONF 64  // actual size = val * GEN_CHUNK_SIZE
 
-#define SCREEN_SIZE_X 2
-#define SCREEN_SIZE_Y 24
+#define SCREEN_SIZE_X 4
+#define SCREEN_SIZE_Y 48
 #define SCREEN_SIZE (SCREEN_SIZE_X * SCREEN_SIZE_Y)
 
 #define SIZE_BIT_MAP 9
@@ -71,28 +72,28 @@ char newline_table[SIZE_WORLD];
 char segment_format[1 << SEGMENT_FORMAT_SIZE][SEGMENT_FORMAT_SIZE];
 cell_value_t bitmap_translator[1 << 9];
 
-inline uint8_t get_index(const cell_segment_rw_t rw, const uint16_t x,
-                         const uint16_t y) {
+inline uint32_t get_index(const cell_segment_rw_t rw,
+                          const uint32_t x, const uint32_t y) {
     uint8_t oob = (y >= SIZE_WORLD_Y) || (x >= SIZE_WORLD_X_CONF);
     return (SIZE_WORLD_X_CONF * y + x) * !oob + SIZE_WORLD * oob +
            rw * oob;
 }
 
 inline segment_t get_cell_segment(const segment_t* const buf,
-                                  const uint16_t x,
-                                  const uint16_t y) {
+                                  const uint32_t x,
+                                  const uint32_t y) {
     return buf[get_index(cell_segment_read, x, y)];
 }
 
 inline void set_cell_segment(segment_t* const buf,
                              const segment_t segment,
-                             const uint16_t x, const uint16_t y) {
+                             const uint32_t x, const uint32_t y) {
     buf[get_index(cell_segment_write, x, y)] = segment;
 }
 
 inline void set_cell_chunk(segment_t* const buf,
                            const segment_chunk_t chunk,
-                           const uint16_t x, const uint16_t y) {
+                           const uint32_t x, const uint32_t y) {
     buf[get_index(cell_segment_write, x, y + 0)] = chunk[0];
     buf[get_index(cell_segment_write, x, y + 1)] = chunk[1];
     buf[get_index(cell_segment_write, x, y + 2)] = chunk[2];
@@ -104,7 +105,7 @@ inline void set_cell_chunk(segment_t* const buf,
 }
 
 void set_cell_value(segment_t* const buf, const cell_value_t value,
-                    const uint16_t x, const uint16_t y) {
+                    const uint32_t x, const uint32_t y) {
     const uint8_t shift = (x % SIZE_SEGMENT);
     segment_t segment = get_cell_segment(buf, x / SIZE_SEGMENT, y);
     segment &= (~0 - (1 << shift));
@@ -112,22 +113,25 @@ void set_cell_value(segment_t* const buf, const cell_value_t value,
     set_cell_segment(buf, segment, x / SIZE_SEGMENT, y);
 }
 
-void toggle_cell_value(segment_t* const buf, const uint16_t x,
-                       const uint16_t y) {
+void toggle_cell_value(segment_t* const buf, const uint32_t x,
+                       const uint32_t y) {
     const uint8_t shift = (x % SIZE_SEGMENT);
     segment_t segment = get_cell_segment(buf, x / SIZE_SEGMENT, y);
     segment ^= (1 << shift);
     set_cell_segment(buf, segment, x / SIZE_SEGMENT, y);
 }
 
-void print_world(void) {
+void print_world(uint32_t x, uint32_t y) {
     char buf[SCREEN_SIZE * (8 * 4 + 1 + 1)];
     char* ptr = buf;
 
     ptr += sprintf(ptr, "\033[1;1H");  // cursor pos 1,1
 
     for (uint16_t i = 0; i < SCREEN_SIZE; i++) {
-        segment_t segment = world[i];
+        uint32_t xpos = x + i % SCREEN_SIZE_X;
+        uint32_t ypos = y + i / SCREEN_SIZE_X;
+        // printf("%u:%u\n", xpos, ypos);
+        segment_t segment = world[ypos * SIZE_WORLD_X_CONF + xpos];
         ptr += sprintf(ptr, "%c%.8s%.8s%.8s%.8s", newline_table[i],
                        segment_format[(segment >> 0) & 0XFF],
                        segment_format[(segment >> 8) & 0XFF],
@@ -233,7 +237,7 @@ inline __m256i avx_calc_left_edge_segments(__m256i top, __m256i mid,
     return acc_r;
 }
 
-void fill_segment_chunks(segment_t* buf, uint8_t x, uint8_t y,
+void fill_segment_chunks(segment_t* buf, uint32_t x, uint32_t y,
                          segment_chunk_t top, segment_chunk_t mid,
                          segment_chunk_t bot) {
     mid[0] = get_cell_segment(buf, x, y + 0);
@@ -265,7 +269,7 @@ void fill_segment_chunks(segment_t* buf, uint8_t x, uint8_t y,
 }
 
 void generate_segment_chunks(segment_t* buf, segment_chunk_t chunk,
-                             uint8_t x, uint8_t y) {
+                             uint32_t x, uint32_t y) {
     u256i_t bitmaps[SIZE_SEGMENT] = {};
 
     segment_chunk_t top;
@@ -347,7 +351,7 @@ void generate_iteration(void) {
 
 void infest_random(void) {
     srand(time(NULL));
-    for (uint16_t i = 0; i < 1000; i++) {
+    for (uint32_t i = 0; i < SIZE_WORLD * GEN_CHUNK_SIZE; i++) {
         toggle_cell_value(world, rand() % SIZE_WORLD_X,
                           rand() % SIZE_WORLD_Y);
     }
@@ -358,62 +362,62 @@ int main(void) {
     generate_newline_table();
     generate_bitmap_translation_table();
 
-    // infest_random();
+    infest_random();
 
-    set_cell_value(world, cell_value_alive, 25 + 5, 5);
-    set_cell_value(world, cell_value_alive, 25 + 6, 5);
-    set_cell_value(world, cell_value_alive, 25 + 7, 5);
-    set_cell_value(world, cell_value_alive, 25 + 8, 5);
-    set_cell_value(world, cell_value_alive, 25 + 9, 5);
-    set_cell_value(world, cell_value_alive, 25 + 10, 5);
-    set_cell_value(world, cell_value_alive, 25 + 5, 6);
-    set_cell_value(world, cell_value_alive, 25 + 6, 6);
-    set_cell_value(world, cell_value_alive, 25 + 7, 6);
-    set_cell_value(world, cell_value_alive, 25 + 8, 6);
-    set_cell_value(world, cell_value_alive, 25 + 9, 6);
-    set_cell_value(world, cell_value_alive, 25 + 10, 6);
-    set_cell_value(world, cell_value_alive, 25 + 8, 12);
-    set_cell_value(world, cell_value_alive, 25 + 9, 12);
-    set_cell_value(world, cell_value_alive, 25 + 10, 12);
-    set_cell_value(world, cell_value_alive, 25 + 11, 12);
-    set_cell_value(world, cell_value_alive, 25 + 12, 12);
-    set_cell_value(world, cell_value_alive, 25 + 13, 12);
-    set_cell_value(world, cell_value_alive, 25 + 8, 13);
-    set_cell_value(world, cell_value_alive, 25 + 9, 13);
-    set_cell_value(world, cell_value_alive, 25 + 10, 13);
-    set_cell_value(world, cell_value_alive, 25 + 11, 13);
-    set_cell_value(world, cell_value_alive, 25 + 12, 13);
-    set_cell_value(world, cell_value_alive, 25 + 13, 13);
-    set_cell_value(world, cell_value_alive, 25 + 12, 5);
-    set_cell_value(world, cell_value_alive, 25 + 13, 5);
-    set_cell_value(world, cell_value_alive, 25 + 12, 6);
-    set_cell_value(world, cell_value_alive, 25 + 13, 6);
-    set_cell_value(world, cell_value_alive, 25 + 12, 7);
-    set_cell_value(world, cell_value_alive, 25 + 13, 7);
-    set_cell_value(world, cell_value_alive, 25 + 12, 8);
-    set_cell_value(world, cell_value_alive, 25 + 13, 8);
-    set_cell_value(world, cell_value_alive, 25 + 12, 9);
-    set_cell_value(world, cell_value_alive, 25 + 13, 9);
-    set_cell_value(world, cell_value_alive, 25 + 12, 10);
-    set_cell_value(world, cell_value_alive, 25 + 13, 10);
-    set_cell_value(world, cell_value_alive, 25 + 12 - 7, 5 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 13 - 7, 5 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 12 - 7, 6 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 13 - 7, 6 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 12 - 7, 7 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 13 - 7, 7 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 12 - 7, 8 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 13 - 7, 8 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 12 - 7, 9 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 13 - 7, 9 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 12 - 7, 10 + 3);
-    set_cell_value(world, cell_value_alive, 25 + 13 - 7, 10 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 5, 5);
+    // set_cell_value(world, cell_value_alive, 25 + 6, 5);
+    // set_cell_value(world, cell_value_alive, 25 + 7, 5);
+    // set_cell_value(world, cell_value_alive, 25 + 8, 5);
+    // set_cell_value(world, cell_value_alive, 25 + 9, 5);
+    // set_cell_value(world, cell_value_alive, 25 + 10, 5);
+    // set_cell_value(world, cell_value_alive, 25 + 5, 6);
+    // set_cell_value(world, cell_value_alive, 25 + 6, 6);
+    // set_cell_value(world, cell_value_alive, 25 + 7, 6);
+    // set_cell_value(world, cell_value_alive, 25 + 8, 6);
+    // set_cell_value(world, cell_value_alive, 25 + 9, 6);
+    // set_cell_value(world, cell_value_alive, 25 + 10, 6);
+    // set_cell_value(world, cell_value_alive, 25 + 8, 12);
+    // set_cell_value(world, cell_value_alive, 25 + 9, 12);
+    // set_cell_value(world, cell_value_alive, 25 + 10, 12);
+    // set_cell_value(world, cell_value_alive, 25 + 11, 12);
+    // set_cell_value(world, cell_value_alive, 25 + 12, 12);
+    // set_cell_value(world, cell_value_alive, 25 + 13, 12);
+    // set_cell_value(world, cell_value_alive, 25 + 8, 13);
+    // set_cell_value(world, cell_value_alive, 25 + 9, 13);
+    // set_cell_value(world, cell_value_alive, 25 + 10, 13);
+    // set_cell_value(world, cell_value_alive, 25 + 11, 13);
+    // set_cell_value(world, cell_value_alive, 25 + 12, 13);
+    // set_cell_value(world, cell_value_alive, 25 + 13, 13);
+    // set_cell_value(world, cell_value_alive, 25 + 12, 5);
+    // set_cell_value(world, cell_value_alive, 25 + 13, 5);
+    // set_cell_value(world, cell_value_alive, 25 + 12, 6);
+    // set_cell_value(world, cell_value_alive, 25 + 13, 6);
+    // set_cell_value(world, cell_value_alive, 25 + 12, 7);
+    // set_cell_value(world, cell_value_alive, 25 + 13, 7);
+    // set_cell_value(world, cell_value_alive, 25 + 12, 8);
+    // set_cell_value(world, cell_value_alive, 25 + 13, 8);
+    // set_cell_value(world, cell_value_alive, 25 + 12, 9);
+    // set_cell_value(world, cell_value_alive, 25 + 13, 9);
+    // set_cell_value(world, cell_value_alive, 25 + 12, 10);
+    // set_cell_value(world, cell_value_alive, 25 + 13, 10);
+    // set_cell_value(world, cell_value_alive, 25 + 12 - 7, 5 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 13 - 7, 5 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 12 - 7, 6 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 13 - 7, 6 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 12 - 7, 7 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 13 - 7, 7 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 12 - 7, 8 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 13 - 7, 8 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 12 - 7, 9 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 13 - 7, 9 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 12 - 7, 10 + 3);
+    // set_cell_value(world, cell_value_alive, 25 + 13 - 7, 10 + 3);
 
     printf("\033[2J");
     printf("\033[?25l");
 
     for (uint32_t i = 0; i < 10000; i++) {
-        print_world();
+        print_world(0, 0);
         generate_iteration();
     }
 
